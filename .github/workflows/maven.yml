@@ -21,16 +21,21 @@ jobs:
         cache: 'maven'
 
     # Start Xvfb before running tests to allow GUI tests
-    - name: Start Xvfb
+    - name: Setup Xvfb
       run: |
         sudo apt-get update
         sudo apt-get install -y xvfb
         Xvfb :99 -screen 0 1024x768x16 &
         echo "DISPLAY=:99" >> $GITHUB_ENV
 
+    - name: Confirm DISPLAY variable
+      run: echo "DISPLAY=$DISPLAY"
+
     - name: Build and Test with Maven
       timeout-minutes: 15
-      run: ./mvnw -B test
+      run: |
+        source $GITHUB_ENV
+        ./mvnw -B test
 
     - name: Package with Maven
       run: ./mvnw -B clean package -DskipTests
@@ -62,7 +67,7 @@ jobs:
         cp src/main/package/thankyou.* target/package/ &&
         cp CONTRIBUTING.md target/package/ &&
         cp LICENSE target/package/ &&
-        cp README.md target/package/
+        cp README.md target/package/ 
 
     - name: Check files 2a
       run: ls -l target/universal-package/

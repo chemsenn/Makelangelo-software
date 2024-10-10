@@ -1,11 +1,8 @@
 name: Java CI with Maven
 
 env:
-  # find out this value by opening https://api.github.com/repos/<owner>/<repo>/releases
-  # in your browser and copy the full "upload_url" value including the {?name,label} part
   UPLOAD_URL: https://uploads.github.com/repos/MarginallyClever/Makelangelo-software/releases/54908875/assets{?name,label}
-  RELEASE_ID: 54908875 # same as above (id can just be taken out the upload_url, it's used to find old releases)
-
+  RELEASE_ID: 54908875
 
 on:
   push:
@@ -23,10 +20,17 @@ jobs:
         java-version: '17'
         cache: 'maven'
 
-    # from https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+    # Start Xvfb before running tests to allow GUI tests
+    - name: Start Xvfb
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb
+        Xvfb :99 -screen 0 1024x768x16 &
+        echo "DISPLAY=:99" >> $GITHUB_ENV
+
     - name: Build and Test with Maven
       timeout-minutes: 15
-      run: ./mvnw -B test -Djava.awt.headless=true
+      run: ./mvnw -B test
 
     - name: Package with Maven
       run: ./mvnw -B clean package -DskipTests
@@ -58,7 +62,7 @@ jobs:
         cp src/main/package/thankyou.* target/package/ &&
         cp CONTRIBUTING.md target/package/ &&
         cp LICENSE target/package/ &&
-        cp README.md target/package/ 
+        cp README.md target/package/
 
     - name: Check files 2a
       run: ls -l target/universal-package/
@@ -70,13 +74,13 @@ jobs:
       if: github.repository == 'MarginallyClever/Makelangelo-software' && github.ref == 'refs/heads/master'
       uses: WebFreak001/deploy-nightly@v3.1.0
       with:
-        token: ${{ secrets.GITHUB_TOKEN }} # automatically provided by github actions
+        token: ${{ secrets.GITHUB_TOKEN }}
         upload_url: ${{ env.UPLOAD_URL }}
         release_id: ${{ env.RELEASE_ID }}
-        asset_path: Makelangelo.zip # path to archive to upload
-        asset_name: Makelangelo-nightly-$$.zip # name to upload the release as, use $$ to insert date (YYYYMMDD) and 6 letter commit hash
-        asset_content_type: application/zip # required by GitHub API
-        max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+        asset_path: Makelangelo.zip
+        asset_name: Makelangelo-nightly-$$.zip
+        asset_content_type: application/zip
+        max_releases: 1
 
     - name: Upload artifact for package
       uses: actions/upload-artifact@v4.3.3
@@ -127,20 +131,17 @@ jobs:
         echo "BINARY_NIGHTLY=$BINARY_NIGHTLY" | tee -a $GITHUB_ENV
 
     - name: Deploy installation release
-#      if: github.repository == 'MarginallyClever/Makelangelo-software'
-#      if: github.repository == 'MarginallyClever/Makelangelo-software' && github.ref == 'refs/heads/master'
       uses: WebFreak001/deploy-nightly@v3.1.0
       with:
-        token: ${{ secrets.GITHUB_TOKEN }} # automatically provided by github actions
+        token: ${{ secrets.GITHUB_TOKEN }}
         upload_url: ${{ env.UPLOAD_URL }}
         release_id: ${{ env.RELEASE_ID }}
-        asset_path: ${{ env.BINARY }} # path to archive to upload
-        asset_name: ${{ env.BINARY_NIGHTLY }} # name to upload the release as, use $$ to insert date (YYYYMMDD) and 6 letter commit hash
-        asset_content_type: application/zip # required by GitHub API
-        max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+        asset_path: ${{ env.BINARY }}
+        asset_name: ${{ env.BINARY_NIGHTLY }}
+        asset_content_type: application/zip
+        max_releases: 1
 
     - name: Upload artifact for testing purpose
-#      if: github.repository == 'MarginallyClever/Makelangelo-software' || github.ref != 'refs/heads/master'
       uses: actions/upload-artifact@v4.3.3
       with:
         name: ${{ env.BINARY }}

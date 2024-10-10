@@ -16,7 +16,7 @@ import com.marginallyclever.util.PreferencesHelper;
 import com.marginallyclever.util.PreferencesHelper.MakelangeloPreferenceKey;
 
 import static org.junit.jupiter.api.Assertions.*;
-
+//
 /**
  * Unit tests for the RecentFiles class.
  * These tests cover the functionality of managing a list of recent files,

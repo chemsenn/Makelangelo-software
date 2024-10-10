@@ -47,6 +47,7 @@ public class MainFrameTest {
      * Test to verify that the MainFrame initializes with default size and position
      * according to the predefined preferences when no custom settings are provided.
      */
+    //
     @Test
     public void testDefaultSizeAndPosition() {
         Preferences graphics = PreferencesHelper.getPreferenceNode(PreferencesHelper.MakelangeloPreferenceKey.GRAPHICS);

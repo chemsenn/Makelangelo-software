@@ -15,14 +15,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-     matrix:
-       jvm_flags:
-         - "-ea" # Standard Flag: Assertions activited 
-         - "-Xmx2G" #Heap size flag: Maximal heap  size of 2Go
-         - "-XX:+PrintCompilation" # JIT Compilation flag, type print: all the methods compiled by the JIT
-         - "-XX:+UseG1GC" #Garbage collector flag: Use the G1 GC
-         - "-XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation" # Compilation/diagnostic flag: Compilation logs 
     steps:
     - uses: actions/checkout@v4
 

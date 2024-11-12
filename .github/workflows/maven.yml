@@ -129,13 +129,25 @@ jobs:
         env:
           MAVEN_OPTS: "${{ matrix.jvm_flags }}"
 
+      - name: Verify JaCoCo Report Generation
+        run: |
+          if [ ! -f target/site/jacoco/index.html ]; then
+          echo "JaCoCo report file not found. Please ensure the report is generated."
+          exit 1
+          fi
+
       - name: Generate JaCoCo Report 
         run: ./mvnw jacoco:report
         
       - name: Display Coverage Summary
         run: |
-          COVERAGE=$(grep 'covered.*%' target/site/jacoco/index.html | sed -n 's/.*>\([0-9.]*\)%<.*/\1/p' || true)
-          echo "Taux de couverture pour le flag ${matrix.jvm_flags}: ${COVERAGE:-N/A}%"
+           if [ -f target/site/jacoco/index.html ]; then
+              COVERAGE=$(grep 'covered.*%' target/site/jacoco/index.html | sed -n 's/.*>\([0-9.]*\)%<.*/\1/p' || true)
+              echo "Taux de couverture pour le flag ${{ matrix.jvm_flags }}: ${COVERAGE:-N/A}%"
+           else
+             echo "JaCoCo report file not found for flag ${{ matrix.jvm_flags }}. Skipping coverage extraction."
+           fi
+
 
       - name: List Target Directory
         run: ls -l target/

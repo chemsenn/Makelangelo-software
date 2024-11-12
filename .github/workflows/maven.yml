@@ -128,7 +128,10 @@ jobs:
 
       - name: Generate JaCoCo Report 
         run: ./mvnw jacoco:report
-
+        
+      - name: Sanitize Artifact Name #to allow the report to work
+        run: echo "COVERAGE_NAME=$(echo 'coverage-report-$,{{ matrix.jvm_flags }}' | tr -d ':+/')" >> $GITHUB_ENV
+        
       - name: Upload Coverage Report 
         uses: actions/upload-artifact@v4.3.3
         with:

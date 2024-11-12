@@ -124,18 +124,15 @@ jobs:
       # Group for JVM flag execution
       - name: Start JVM Flag Test Group
         run: echo "::group::Running Tests with JVM Flag '${{ matrix.jvm_flags }}'"
+             echo "::endgroup::"
 
       # Run tests with the specified JVM flag
       - name: Run Tests with JVM Flag
         run: ./mvnw clean test -DargLine="${{ matrix.jvm_flags }}" -Djava.awt.headless=true
 
-      # End the JVM flag test group
-      - name: End JVM Flag Test Group
-        run: echo "::endgroup::"
-
       - name: Verify JaCoCo Report
         run: |
-          if [ ! -f target/site/jacoco/index.html ]; then
+          if [ ! -f target/site/jacoco/jacoco.csv ]; then
             echo "JaCoCo report not found. Generating the report."
             ./mvnw jacoco:report
           else

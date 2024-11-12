@@ -129,14 +129,9 @@ jobs:
       - name: Generate JaCoCo Report 
         run: ./mvnw jacoco:report
         
-      - name: Sanitize Artifact Name #to allow the report to work
-        run: echo "COVERAGE_NAME=$(echo 'coverage-report-$,{{ matrix.jvm_flags }}' | tr -d ':+/')" >> $GITHUB_ENV
-        
-      - name: Upload Coverage Report 
-        uses: actions/upload-artifact@v4.3.3
-        with:
-          name: ${{ env.COVERAGE_NAME }}
-          path: target/site/jacoco/
+      - name: Display Coverage Summary
+        run: |
+          grep -oP 'covered.*?>(\d+\.\d+)%' target/site/jacoco/index.html | grep -oP '\d+\.\d+'
 
       - name: List Target Directory
         run: ls -l target/

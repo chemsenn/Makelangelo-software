@@ -121,23 +121,34 @@ jobs:
       - name: Compile with Maven
         run: ./mvnw -B clean compile 
 
-      - name: Run Tests and Collect Coverage
-        run: |
-          echo "::group::Running Tests with JVM Flags: ${{ matrix.jvm_flags }}"
-          ./mvnw clean test jacoco:prepare-agent -DargLine="${{ matrix.jvm_flags }}" || exit 1
-          echo "::endgroup::"
+      # Group for JVM flag execution
+      - name: Start JVM Flag Test Group
+        run: echo "::group::Running Tests with JVM Flag '${{ matrix.jvm_flags }}'"
 
-      - name: Generate JaCoCo Report
-        run: ./mvnw jacoco:report
+      # Run tests with the specified JVM flag
+      - name: Run Tests with JVM Flag
+        run: ./mvnw clean test -DargLine="${{ matrix.jvm_flags }}" -Djava.awt.headless=true
 
+      # End the JVM flag test group
+      - name: End JVM Flag Test Group
+        run: echo "::endgroup::"
+
+      # Group for coverage report display
+      - name: Start Coverage Summary Group
+        run: echo "::group::Displaying Coverage Summary for JVM Flag '${{ matrix.jvm_flags }}'"
+
+      # Display the coverage percentage for the current JVM flag
       - name: Display Coverage Summary
         run: |
           if [ -f target/site/jacoco/index.html ]; then
-            COVERAGE=$(grep -o '[0-9.]*%' target/site/jacoco/index.html | head -1)
-            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${COVERAGE:-N/A}%"
+            COVERAGE=$(grep -oP '(?<=<td class="ctr2">)[0-9]+%' target/site/jacoco/index.html | head -1)
+            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${COVERAGE:-N/A}"
           else
-            echo "JaCoCo report file not found for JVM flag '${{ matrix.jvm_flags }}'. Coverage extraction skipped."
+            echo "JaCoCo report file not found for JVM flag '${{ matrix.jvm_flags }}'. Skipping coverage extraction."
           fi
+      - name: List JaCoCo Report Directory
+        run: ls -l target/site/jacoco/
+        
   package:
     needs: build
     runs-on: ${{ matrix.os }}

@@ -14,6 +14,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    strategy:
+     matrix:
+       jvm_flags:
+         - "-ea" # Standard Flag: Assertions activited 
+         - "-Xmx2G" #Heap size flag: Maximal heap  size of 2Go
+         - "-XX:+PrintCompilation" # JIT Compilation flag, type print: all the methods compiled by the JIT
+         - "-XX:+UseG1GC" #Garbage collector flag: Use the G1 GC
+         - "-XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation" # Compilation/diagnostic flag: Compilation logs 
     steps:
     - uses: actions/checkout@v4
 
@@ -93,6 +102,47 @@ jobs:
     - name: Check files 3
       run: ls -l target/universal-package/
 
+  # jvm glags 
+  test-with-flags:
+    runs-on: ubuntu-latest
+
+    strategy:
+     matrix: #run the tests with multiple JVM configurations uding different JVM flag, runs tests in parallel
+       jvm_flags:
+         - "-ea" # Standard Flag: Assertions activited 
+         - "-Xmx2G" #Heap size flag: Maximal heap  size of 2Go
+         - "-XX:+PrintCompilation" # JIT Compilation flag, type print: all the methods compiled by the JIT
+         - "-XX:+UseG1GC" #Garbage collector flag: Use the G1 GC
+         - "-XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation" # Compilation/diagnostic flag: Compilation logs 
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4.2.1
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Compile with Maven
+        run: ./mvnw -B clean compile 
+
+      - name: Run Tests with the JVM flags ${{ matrix.jvm_flags }} #generates logs with the name of the executed flag
+        run: ./mvnw -B test -Djava.awt.headless=true -Dargline="${{ matrix.jvm_flags }}"
+        env:
+          MAVEN_OPTS: "${{ matrix.jvm_flags }}"
+
+      - name: Generate JaCoCo Report 
+        run: ./mvnw jacoco:report
+
+      - name: Upload Coverage Report 
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: coverage-report-${{ matrix.jvm_flags }}
+          path: target/site/jacoco/
+
+      - name: List Target Directory
+        run: ls -l target/
+        
   package:
     needs: build
     runs-on: ${{ matrix.os }}

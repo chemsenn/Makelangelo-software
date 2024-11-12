@@ -123,46 +123,50 @@ jobs:
       - name: Start JVM Flag Test Group
         run: echo "::group::Running Tests with JVM Flag '${{ matrix.jvm_flags }}'"
 
-      # Run tests with the specified JVM flag and prepare JaCoCo agent
-      - name: Run Tests with JVM Flag and Prepare JaCoCo Agent
-        run: ./mvnw clean test jacoco:prepare-agent -DargLine="${{ matrix.jvm_flags }}" -Djava.awt.headless=true
+      - name: Run Tests with JVM Flag
+        run: ./mvnw clean test -DargLine="${{ matrix.jvm_flags }} -javaagent:${{ env.HOME }}/.m2/repository/org/jacoco/org.jacoco.agent/0.8.11/org.jacoco.agent-0.8.11-runtime.jar=destfile=target/jacoco-${{ matrix.jvm_flags }}.exec"
 
-      # Generate the JaCoCo report explicitly after running tests
       - name: Generate JaCoCo Report
-        run: ./mvnw jacoco:report
+        run: ./mvnw jacoco:merge jacoco:report -Djacoco.dataFile=target/jacoco-*.exec
 
-      - name: Set Working Directory
-        run: cd $GITHUB_WORKSPACE
+      - name: Verify JaCoCo Report
+        run: |
+          if [ ! -f target/site/jacoco/jacoco.csv ]; then
+            echo "JaCoCo report not found. Generating the report."
+            ./mvnw jacoco:report
+          else
+             echo "JaCoCo report already exists. Skipping generation."
+          fi
+      - name: List JaCoCo Report Directory
+        run: |
+           echo "Checking contents of target/site/jacoco/"
+           ls -l target/site/jacoco/
+
       
-      - name: List JaCoCo Report Files
-        run: ls -l target/jacoco/
-        
       - name: Delay Before Extracting Coverage
         run: sleep 5
 
       - name: Extract Coverage for Flag
         id: coverage
         run: |
-          echo "::group::Extracting Coverage for JVM Flag: ${{ matrix.jvm_flags }}"
-          cd $GITHUB_WORKSPACE
-          if [ -f target/jacoco/jacoco.csv ]; then
-            coverage=$(python3 config/coverage.py target/jacoco/jacoco.csv)
-            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage:-N/A}%"
-            echo "COVERAGE_${{ matrix.jvm_flags }}=${coverage:-N/A}" >> $GITHUB_ENV
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+             coverage=$(python3 config/coverage.py target/site/jacoco/jacoco.csv)
+             echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage:-N/A}%"
+             echo "COVERAGE_${{ matrix.jvm_flags }}=${coverage:-N/A}" >> $GITHUB_ENV
           else
-            echo "JaCoCo report not found. Coverage extraction skipped."
-            echo "COVERAGE_${{ matrix.jvm_flags }}=N/A" >> $GITHUB_ENV
+             echo "JaCoCo report not found. Coverage extraction skipped."
+             echo "COVERAGE_${{ matrix.jvm_flags }}=N/A" >> $GITHUB_ENV
           fi
-          echo "::endgroup::"
 
 
       - name: Display Coverage Summary
         run: |
-          echo "Coverage for '-ea': $COVERAGE_-ea%"
-          echo "Coverage for '-XX:+UnlockDiagnosticVMOptions': $COVERAGE_-XX:+UnlockDiagnosticVMOptions%"
-          echo "Coverage for '-XX:+LogCompilation': $COVERAGE_-XX:+LogCompilation%"
-          echo "Coverage for '-Xmx2G': $COVERAGE_-Xmx2G%"
-          echo "Coverage for '-XX:+UseG1GC': $COVERAGE_-XX:+UseG1GC%"
+         echo "Coverage for '-ea': $COVERAGE_-ea%"
+         echo "Coverage for '-Xmx2G': $COVERAGE_-Xmx2G%"
+         echo "Coverage for '-XX:+PrintCompilation': $COVERAGE_-XX:+PrintCompilation%"
+         echo "Coverage for '-XX:+UseG1GC': $COVERAGE_-XX:+UseG1GC%"
+         echo "Coverage for '-XX:+UnlockDiagnosticVMOptions': $COVERAGE_-XX:+UnlockDiagnosticVMOptions%"
+
   package:
     needs: build
     runs-on: ${{ matrix.os }}

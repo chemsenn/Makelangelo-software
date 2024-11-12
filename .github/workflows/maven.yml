@@ -8,9 +8,11 @@ env:
 
 
 on:
-  push:
-  pull_request:
-
+  workflow_run:
+    workflows: ["test.yml"]
+    types:
+      - completed
+      
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -136,8 +138,6 @@ jobs:
           exit 1
           fi
 
-      - name: Generate JaCoCo Report 
-        run: ./mvnw clean test jacoco:prepare-agent jacoco:report
         
       - name: Display Coverage Summary
         run: |
@@ -147,7 +147,6 @@ jobs:
            else
              echo "JaCoCo report file not found for flag ${{ matrix.jvm_flags }}. Skipping coverage extraction."
            fi
-
 
       - name: List Target Directory
         run: ls -l target/

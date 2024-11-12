@@ -129,7 +129,11 @@ jobs:
           MAVEN_OPTS="${{ matrix.jvm_flags }}" ./mvnw clean test -Djava.awt.headless=true
           
       - name: Generate JaCoCo Report
-        run: ./mvnw jacoco:merge jacoco:report -Djacoco.dataFile=target/jacoco-*.exec
+        run: |
+          ./mvnw jacoco:report
+          echo "Listing contents of target/site/jacoco/"
+          ls -l target/site/jacoco/
+
 
       - name: Verify JaCoCo Report
         run: |

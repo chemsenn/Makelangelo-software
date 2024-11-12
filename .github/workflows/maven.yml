@@ -1,166 +1,98 @@
 name: Java CI with Maven
 
 env:
-  # find out this value by opening https://api.github.com/repos/<owner>/<repo>/releases
-  # in your browser and copy the full "upload_url" value including the {?name,label} part
   UPLOAD_URL: https://uploads.github.com/repos/MarginallyClever/Makelangelo-software/releases/54908875/assets{?name,label}
-  RELEASE_ID: 54908875 # same as above (id can just be taken out the upload_url, it's used to find old releases)
-
+  RELEASE_ID: 54908875
 
 on:
   push:
   pull_request:
-      
+
 jobs:
-  build:
+  # Step 1: Build and Generate Report
+  generate-report:
     runs-on: ubuntu-latest
-    timeout-minutes: 30 
-
+    timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
 
-    - uses: actions/setup-java@v4.2.1
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-        cache: 'maven'
+      - name: Build and Test with Maven
+        run: ./mvnw clean test jacoco:prepare-agent jacoco:report
 
-    # from https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
-    - name: Build and Test with Maven
-      timeout-minutes: 30
-      run: ./mvnw -B test -Djava.awt.headless=true
+      - name: Upload JaCoCo Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
 
-    - name: Package with Maven
-      run: ./mvnw -B clean package -DskipTests
-
-    - name: Check files 1
-      run: ls -l src/main/package/
-
-    - name: Prepare universal package
-      shell: bash
-      run: |
-        mkdir -p target/universal-package &&
-        cp src/main/package/*.bat target/universal-package/ &&
-        cp src/main/package/start* target/universal-package/ &&
-        cp src/main/package/thankyou.* target/universal-package/ &&
-        cp CONTRIBUTING.md target/universal-package/ &&
-        cp LICENSE target/universal-package/ &&
-        cp README.md target/universal-package/ &&
-        cp target/Makelangelo-*-with-dependencies.jar target/universal-package/ &&
-        cd target/universal-package/ &&
-        7z a -tzip Makelangelo.zip . &&
-        mv Makelangelo.zip ../.. 
-
-    - name: Prepare target/package for upload
-      shell: bash
-      run: |
-        mkdir -p target/package &&
-        cp src/main/package/*.bat target/package/ &&
-        cp src/main/package/start* target/package/ &&
-        cp src/main/package/thankyou.* target/package/ &&
-        cp CONTRIBUTING.md target/package/ &&
-        cp LICENSE target/package/ &&
-        cp README.md target/package/ 
-
-    - name: Check files 2a
-      run: ls -l target/universal-package/
-
-    - name: Check files 2b
-      run: ls -l target/package/
-
-    - name: Deploy universal release
-      if: github.repository == 'MarginallyClever/Makelangelo-software' && github.ref == 'refs/heads/master'
-      uses: WebFreak001/deploy-nightly@v3.1.0
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }} # automatically provided by github actions
-        upload_url: ${{ env.UPLOAD_URL }}
-        release_id: ${{ env.RELEASE_ID }}
-        asset_path: Makelangelo.zip # path to archive to upload
-        asset_name: Makelangelo-nightly-$$.zip # name to upload the release as, use $$ to insert date (YYYYMMDD) and 6 letter commit hash
-        asset_content_type: application/zip # required by GitHub API
-        max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
-
-    - name: Upload artifact for package
-      uses: actions/upload-artifact@v4.3.3
-      with:
-        name: jar
-        retention-days: 1
-        path: |
-          src/main/package/jpackage*
-          src/main/package/logo*
-          LICENSE
-          README
-          target/package/*
-
-    - name: Check files 3
-      run: ls -l target/universal-package/
-
-  # jvm glags 
+  # Step 2: Run Tests with JVM Flags
   test-with-flags:
     runs-on: ubuntu-latest
-    needs: build
+    needs: generate-report
     timeout-minutes: 30
-
     strategy:
-     matrix: #run the tests with multiple JVM configurations uding different JVM flag, runs tests in parallel
-       jvm_flags:
-         - "-ea" # Standard Flag: Assertions activited 
-         - "-Xmx2G" #Heap size flag: Maximal heap  size of 2Go
-         - "-XX:+PrintCompilation" # JIT Compilation flag, type print: all the methods compiled by the JIT
-         - "-XX:+UseG1GC" #Garbage collector flag: Use the G1 GC
-         - "-XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation" # Compilation/diagnostic flag: Compilation logs 
+      matrix:
+        jvm_flags:
+          - "-ea"
+          - "-Xmx2G"
+          - "-XX:+PrintCompilation"
+          - "-XX:+UseG1GC"
+          - "-XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation"
 
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4.2.1
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
           cache: 'maven'
 
       - name: Compile with Maven
-        run: ./mvnw -B clean compile 
+        run: ./mvnw clean compile
 
-      # Group for JVM flag execution
-      - name: Start JVM Flag Test Group
+      - name: Group Start for JVM Flag Test
         run: echo "::group::Running Tests with JVM Flag '${{ matrix.jvm_flags }}'"
-             echo "::endgroup::"
 
-      # Run tests with the specified JVM flag
       - name: Run Tests with JVM Flag
         run: ./mvnw clean test -DargLine="${{ matrix.jvm_flags }}" -Djava.awt.headless=true
 
       - name: Verify JaCoCo Report
         run: |
-          if [ ! -f target/site/jacoco/jacoco.csv ]; then
+          if [ ! -f target/site/jacoco/index.html ]; then
             echo "JaCoCo report not found. Generating the report."
             ./mvnw jacoco:report
           else
             echo "JaCoCo report already exists. Skipping generation."
           fi
 
-      - name: Extract Coverage for Flag
-        id: coverage
-        run: |
-          echo "::group::Extracting Coverage for JVM Flag: ${{ matrix.jvm_flag }}"
-          if [ -f target/site/jacoco/jacoco.csv ]; then
-            coverage=$(python3 config/coverage.py target/site/jacoco/jacoco.csv)
-            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flag }}': ${coverage:-N/A}%"
-            echo "COVERAGE_${{ matrix.jvm_flag }}=${coverage:-N/A}" >> $GITHUB_ENV
-          else
-            echo "JaCoCo report not found. Coverage extraction skipped."
-            echo "COVERAGE_${{ matrix.jvm_flag }}=N/A" >> $GITHUB_ENV
-          fi
-          echo "::endgroup::"
+      - name: Group End for JVM Flag Test
+        run: echo "::endgroup::"
+
+  # Step 3: Extract Coverage
+  extract-coverage:
+    needs: [generate-report, test-with-flags]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download JaCoCo Report
+        uses: actions/download-artifact@v4
+        with:
+          name: jacoco-report
+
+      - name: Extract Coverage
+        run: python3 config/coverage.py target/site/jacoco/jacoco.csv
 
       - name: Display Coverage Summary
         run: |
-          echo "Coverage for '-ea': $COVERAGE_-ea%"
-          echo "Coverage for '-XX:+UnlockDiagnosticVMOptions': $COVERAGE_-XX:+UnlockDiagnosticVMOptions%"
-          echo "Coverage for '-XX:+LogCompilation': $COVERAGE_-XX:+LogCompilation%"
-          echo "Coverage for '-Xmx1024m': $COVERAGE_-Xmx1024m%"
-          echo "Coverage for '-XX:+UseG1GC': $COVERAGE_-XX:+UseG1GC%"
-          
+          echo "Coverage extracted successfully."
+
+  # Step 4: Package and Deploy
   package:
     needs: build
     runs-on: ${{ matrix.os }}
@@ -168,49 +100,46 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
     steps:
-    - uses: actions/setup-java@v3
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-    - uses: actions/download-artifact@v4.1.7
-      with:
-        name: jar
-        
-    - name: Check files 4
-      run: ls -l target/package/
+      - uses: actions/download-artifact@v4
+        with:
+          name: jar
 
-    - name: Build installation package
-      shell: bash
-      run: |
-        set -x
-        set -o pipefail
-        APP_VERSION=$(ls -1 target/package/Makelangelo-*-with-dependencies.jar | sed "s/.*Makelangelo-\([^-]*\)-with-dependencies.jar/\1/") &&
-        sed -i.bak "s/\(--app-version\).*/\1 $APP_VERSION/" src/main/package/jpackage.cfg &&
-        jpackage "@src/main/package/jpackage.cfg" "@src/main/package/jpackage-${{matrix.os}}.cfg" --main-jar "Makelangelo-$APP_VERSION-with-dependencies.jar" &&
-        ls &&
-        BINARY=$(find . -maxdepth 1 -iname 'makelangelo*' | grep -E '(msi$|dmg$|deb$)' | sed "s,./,," | head -1) &&
-        BINARY_NIGHTLY=$(echo $BINARY | sed 's/[Mm]akelangelo\(.*\)\.\(.*\)/\Makelangelo-nightly-$$.\2/') &&
-        echo "BINARY=$BINARY" | tee -a $GITHUB_ENV &&
-        echo "BINARY_NIGHTLY=$BINARY_NIGHTLY" | tee -a $GITHUB_ENV
+      - name: Check files
+        run: ls -l target/package/
 
-    - name: Deploy installation release
-#      if: github.repository == 'MarginallyClever/Makelangelo-software'
-#      if: github.repository == 'MarginallyClever/Makelangelo-software' && github.ref == 'refs/heads/master'
-      uses: WebFreak001/deploy-nightly@v3.1.0
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }} # automatically provided by github actions
-        upload_url: ${{ env.UPLOAD_URL }}
-        release_id: ${{ env.RELEASE_ID }}
-        asset_path: ${{ env.BINARY }} # path to archive to upload
-        asset_name: ${{ env.BINARY_NIGHTLY }} # name to upload the release as, use $$ to insert date (YYYYMMDD) and 6 letter commit hash
-        asset_content_type: application/zip # required by GitHub API
-        max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+      - name: Build installation package
+        shell: bash
+        run: |
+          set -x
+          set -o pipefail
+          APP_VERSION=$(ls -1 target/package/Makelangelo-*-with-dependencies.jar | sed "s/.*Makelangelo-\([^-]*\)-with-dependencies.jar/\1/") &&
+          sed -i.bak "s/\(--app-version\).*/\1 $APP_VERSION/" src/main/package/jpackage.cfg &&
+          jpackage "@src/main/package/jpackage.cfg" "@src/main/package/jpackage-${{matrix.os}}.cfg" --main-jar "Makelangelo-$APP_VERSION-with-dependencies.jar" &&
+          ls &&
+          BINARY=$(find . -maxdepth 1 -iname 'makelangelo*' | grep -E '(msi$|dmg$|deb$)' | sed "s,./,," | head -1) &&
+          BINARY_NIGHTLY=$(echo $BINARY | sed 's/[Mm]akelangelo\(.*\)\.\(.*\)/Makelangelo-nightly-$$.\2/') &&
+          echo "BINARY=$BINARY" | tee -a $GITHUB_ENV &&
+          echo "BINARY_NIGHTLY=$BINARY_NIGHTLY" | tee -a $GITHUB_ENV
 
-    - name: Upload artifact for testing purpose
-#      if: github.repository == 'MarginallyClever/Makelangelo-software' || github.ref != 'refs/heads/master'
-      uses: actions/upload-artifact@v4.3.3
-      with:
-        name: ${{ env.BINARY }}
-        retention-days: 2
-        path: ${{ env.BINARY }}
+      - name: Deploy installation release
+        uses: WebFreak001/deploy-nightly@v3.1.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          upload_url: ${{ env.UPLOAD_URL }}
+          release_id: ${{ env.RELEASE_ID }}
+          asset_path: ${{ env.BINARY }}
+          asset_name: ${{ env.BINARY_NIGHTLY }}
+          asset_content_type: application/zip
+          max_releases: 1
+
+      - name: Upload artifact for testing purpose
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: ${{ env.BINARY }}
+          retention-days: 2
+          path: ${{ env.BINARY }}

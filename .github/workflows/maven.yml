@@ -120,9 +120,12 @@ jobs:
 
       - name: Compile with Maven
         run: ./mvnw -B clean compile 
-
+        
       - name: Run Tests with the JVM flags ${{ matrix.jvm_flags }} #generates logs with the name of the executed flag
-        run: ./mvnw -B test -Djava.awt.headless=true -Dargline="${{ matrix.jvm_flags }}"
+        run: |
+           echo "::group::Tets executed with ${{ matrix.jvm_flags }}"
+           ./mvnw -B test -Djava.awt.headless=true -DargLine="${{ matrix.jvm_flags }}"
+           echo "::endgroup::"
         env:
           MAVEN_OPTS: "${{ matrix.jvm_flags }}"
 
@@ -131,8 +134,8 @@ jobs:
         
       - name: Display Coverage Summary
         run: |
-          COVERAGE=$(grep 'covered.*%' target/site/jacoco/index.html | sed -n 's/.*>\([0-9.]*\)%<.*/\1/p')
-          echo "Coverage: ${COVERAGE}%"
+          COVERAGE=$(grep 'covered.*%' target/site/jacoco/index.html | sed -n 's/.*>\([0-9.]*\)%<.*/\1/p' || true)
+          echo "Taux de couverture pour le flag ${matrix.jvm_flags}: ${COVERAGE:-N/A}%"
 
       - name: List Target Directory
         run: ls -l target/

@@ -124,8 +124,10 @@ jobs:
         run: echo "::group::Running Tests with JVM Flag '${{ matrix.jvm_flags }}'"
 
       - name: Run Tests with JVM Flag
-        run: ./mvnw clean test -DargLine="${{ matrix.jvm_flags }} -javaagent:${{ env.HOME }}/.m2/repository/org/jacoco/org.jacoco.agent/0.8.11/org.jacoco.agent-0.8.11-runtime.jar=destfile=target/jacoco-${{ matrix.jvm_flags }}.exec"
-
+        run: |
+          echo "Running tests with JVM Flag: ${{ matrix.jvm_flags }}"
+          MAVEN_OPTS="${{ matrix.jvm_flags }}" ./mvnw clean test -Djava.awt.headless=true
+          
       - name: Generate JaCoCo Report
         run: ./mvnw jacoco:merge jacoco:report -Djacoco.dataFile=target/jacoco-*.exec
 

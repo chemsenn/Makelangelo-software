@@ -120,25 +120,16 @@ jobs:
 
       - name: Compile with Maven
         run: ./mvnw -B clean compile 
-        
-      - name: Run Tests and Generate JaCoCo Report
+
+      - name: Run Tests and Collect Coverage
         run: |
           echo "::group::Running Tests with JVM Flags: ${{ matrix.jvm_flags }}"
-          ./mvnw clean verify -DargLine="${{ matrix.jvm_flags }}" jacoco:report
+          ./mvnw clean test jacoco:prepare-agent -DargLine="${{ matrix.jvm_flags }}" || exit 1
           echo "::endgroup::"
-        env:
-          MAVEN_OPTS: "${{ matrix.jvm_flags }}"
 
-      - name: Verify JaCoCo Report Generation
-        run: |
-          if [ ! -f target/site/jacoco/index.html ]; then
-            echo "JaCoCo report not found. Attempting to generate the report."
-            ./mvnw clean verify jacoco:report || { echo "Failed to generate JaCoCo report"; exit 1; }
-            echo "JaCoCo report generation complete."
-          else
-            echo "JaCoCo report already exists. Skipping generation."
-          fi
-          
+      - name: Generate JaCoCo Report
+        run: ./mvnw jacoco:report
+
       - name: Display Coverage Summary
         run: |
           if [ -f target/site/jacoco/index.html ]; then
@@ -147,10 +138,6 @@ jobs:
           else
             echo "JaCoCo report file not found for JVM flag '${{ matrix.jvm_flags }}'. Coverage extraction skipped."
           fi
-
-      - name: Display JaCoCo Report Snippet
-        run: head -20 target/site/jacoco/index.html
-
   package:
     needs: build
     runs-on: ${{ matrix.os }}

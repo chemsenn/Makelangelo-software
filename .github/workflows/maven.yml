@@ -137,7 +137,7 @@ jobs:
           fi
 
       - name: Generate JaCoCo Report 
-        run: ./mvnw jacoco:report
+        run: ./mvnw clean test jacoco:prepare-agent jacoco:report
         
       - name: Display Coverage Summary
         run: |

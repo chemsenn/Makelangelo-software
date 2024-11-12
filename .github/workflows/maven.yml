@@ -131,7 +131,8 @@ jobs:
         
       - name: Display Coverage Summary
         run: |
-          grep -oP 'covered.*?>(\d+\.\d+)%' target/site/jacoco/index.html | grep -oP '\d+\.\d+'
+          COVERAGE=$(grep 'covered.*%' target/site/jacoco/index.html | sed -n 's/.*>\([0-9.]*\)%<.*/\1/p')
+          echo "Coverage: ${COVERAGE}%"
 
       - name: List Target Directory
         run: ls -l target/

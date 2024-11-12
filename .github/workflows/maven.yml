@@ -125,8 +125,9 @@ jobs:
 
       - name: Run Tests with JVM Flag
         run: |
-          echo "Running tests with JVM Flag: ${{ matrix.jvm_flags }}"
-          MAVEN_OPTS="${{ matrix.jvm_flags }}" ./mvnw clean test -Djava.awt.headless=true
+          echo "Running tests with JVM flag '${{ matrix.jvm_flags }}'"
+          rm -f target/site/jacoco/jacoco.csv  # Clear previous JaCoCo report
+          ./mvnw clean test -DargLine="${{ matrix.jvm_flags }}" -Djava.awt.headless=true
           
       - name: Generate JaCoCo Report
         run: |

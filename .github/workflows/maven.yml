@@ -133,22 +133,37 @@ jobs:
       - name: End JVM Flag Test Group
         run: echo "::endgroup::"
 
-      # Group for coverage report display
-      - name: Start Coverage Summary Group
-        run: echo "::group::Displaying Coverage Summary for JVM Flag '${{ matrix.jvm_flags }}'"
+      - name: Verify JaCoCo Report
+        run: |
+          if [ ! -f target/site/jacoco/index.html ]; then
+            echo "JaCoCo report not found. Generating the report."
+            ./mvnw jacoco:report
+          else
+            echo "JaCoCo report already exists. Skipping generation."
+          fi
 
-      # Display the coverage percentage for the current JVM flag
+      - name: Extract Coverage for Flag
+        id: coverage
+        run: |
+          echo "::group::Extracting Coverage for JVM Flag: ${{ matrix.jvm_flag }}"
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+            coverage=$(python3 config/coverage.py target/site/jacoco/jacoco.csv)
+            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flag }}': ${coverage:-N/A}%"
+            echo "COVERAGE_${{ matrix.jvm_flag }}=${coverage:-N/A}" >> $GITHUB_ENV
+          else
+            echo "JaCoCo report not found. Coverage extraction skipped."
+            echo "COVERAGE_${{ matrix.jvm_flag }}=N/A" >> $GITHUB_ENV
+          fi
+          echo "::endgroup::"
+
       - name: Display Coverage Summary
         run: |
-          if [ -f target/site/jacoco/index.html ]; then
-            COVERAGE=$(grep -oP '(?<=<td class="ctr2">)[0-9]+%' target/site/jacoco/index.html | head -1)
-            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${COVERAGE:-N/A}"
-          else
-            echo "JaCoCo report file not found for JVM flag '${{ matrix.jvm_flags }}'. Skipping coverage extraction."
-          fi
-      - name: List JaCoCo Report Directory
-        run: ls -l target/site/jacoco/
-        
+          echo "Coverage for '-ea': $COVERAGE_-ea%"
+          echo "Coverage for '-XX:+UnlockDiagnosticVMOptions': $COVERAGE_-XX:+UnlockDiagnosticVMOptions%"
+          echo "Coverage for '-XX:+LogCompilation': $COVERAGE_-XX:+LogCompilation%"
+          echo "Coverage for '-Xmx1024m': $COVERAGE_-Xmx1024m%"
+          echo "Coverage for '-XX:+UseG1GC': $COVERAGE_-XX:+UseG1GC%"
+          
   package:
     needs: build
     runs-on: ${{ matrix.os }}

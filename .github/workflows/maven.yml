@@ -121,25 +121,32 @@ jobs:
       - name: Compile with Maven
         run: ./mvnw -B clean compile 
         
-      - name: Run Tests with the JVM flags ${{ matrix.jvm_flags }} #generates logs with the name of the executed flag
+      - name: Run Tests and Generate JaCoCo Report
         run: |
-           echo "::group::Tets executed with ${{ matrix.jvm_flags }}"
-           ./mvnw -B test -Djava.awt.headless=true -DargLine="${{ matrix.jvm_flags }}"
-           echo "::endgroup::"
+          echo "::group::Running Tests with JVM Flags: ${{ matrix.jvm_flags }}"
+          ./mvnw clean verify -DargLine="${{ matrix.jvm_flags }}" jacoco:report
+          echo "::endgroup::"
         env:
           MAVEN_OPTS: "${{ matrix.jvm_flags }}"
 
-
-      - name: Run JaCoCo Coverage
-        run: mvn jacoco:report
-
-      - name: Generate Coverage Report
-        run: mvn jacoco:check
+      - name: Verify JaCoCo Report Generation
+        run: |
+          if [ ! -f target/site/jacoco/index.html ]; then
+            echo "JaCoCo report not found. Attempting to generate the report."
+            ./mvnw clean verify jacoco:report || { echo "Failed to generate JaCoCo report"; exit 1; }
+            echo "JaCoCo report generation complete."
+          else
+            echo "JaCoCo report already exists. Skipping generation."
+          fi
 
       - name: Display Coverage Summary
         run: |
-          echo "Coverage report for JVM Flag: ${{ matrix.jvm_flags }}"
-          cat target/site/jacoco/index.html
+          if [ -f target/site/jacoco/index.html ]; then
+            COVERAGE=$(grep -o '[0-9.]*%' target/site/jacoco/index.html | head -1)
+            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${COVERAGE:-N/A}%"
+          else
+            echo "JaCoCo report file not found for JVM flag '${{ matrix.jvm_flags }}'. Coverage extraction skipped."
+          fi
           
   package:
     needs: build

@@ -8,10 +8,8 @@ env:
 
 
 on:
-  workflow_run:
-    workflows: ["test.yml"]
-    types:
-      - completed
+  push:
+  pull_request:
       
 jobs:
   build:
@@ -131,11 +129,22 @@ jobs:
         env:
           MAVEN_OPTS: "${{ matrix.jvm_flags }}"
 
+
+# Step 1: Generate JaCoCo Report (Only if Needed)
+      - name: Generate JaCoCo Report (Optional)
+        run: |
+          if [ ! -f target/site/jacoco/index.html ]; then
+           echo "JaCoCo report not found. Generating the report."
+            ./mvnw clean test jacoco:prepare-agent jacoco:report
+          else
+           echo "JaCoCo report already exists. Skipping generation."
+          fi
+          
       - name: Verify JaCoCo Report Generation
         run: |
           if [ ! -f target/site/jacoco/index.html ]; then
-          echo "JaCoCo report file not found. Please ensure the report is generated."
-          exit 1
+            echo "JaCoCo report file not found. Please ensure the report is generated."
+            exit 1
           fi
 
         

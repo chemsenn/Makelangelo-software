@@ -155,23 +155,26 @@ jobs:
       - name: Extract Coverage for Flag
         id: coverage
         run: |
+          echo "::group::Extracting Coverage for JVM Flag: ${{ matrix.jvm_flags }}"
+          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
           if [ -f target/site/jacoco/jacoco.csv ]; then
-             coverage=$(python3 config/coverage.py target/site/jacoco/jacoco.csv)
-             echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage:-N/A}%"
-             echo "COVERAGE_${{ matrix.jvm_flags }}=${coverage:-N/A}" >> $GITHUB_ENV
+            coverage=$(python3 config/coverage.py target/site/jacoco/jacoco.csv)
+            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage:-N/A}%"
+            echo "COVERAGE_${sanitized_flag}=${coverage:-N/A}" >> $GITHUB_ENV
           else
-             echo "JaCoCo report not found. Coverage extraction skipped."
-             echo "COVERAGE_${{ matrix.jvm_flags }}=N/A" >> $GITHUB_ENV
+            echo "JaCoCo report not found. Coverage extraction skipped."
+            echo "COVERAGE_${sanitized_flag}=N/A" >> $GITHUB_ENV
           fi
+          echo "::endgroup::"
 
 
       - name: Display Coverage Summary
         run: |
-         echo "Coverage for '-ea': $COVERAGE_-ea%"
-         echo "Coverage for '-Xmx2G': $COVERAGE_-Xmx2G%"
-         echo "Coverage for '-XX:+PrintCompilation': $COVERAGE_-XX:+PrintCompilation%"
-         echo "Coverage for '-XX:+UseG1GC': $COVERAGE_-XX:+UseG1GC%"
-         echo "Coverage for '-XX:+UnlockDiagnosticVMOptions': $COVERAGE_-XX:+UnlockDiagnosticVMOptions%"
+          echo "Coverage for '-ea': $COVERAGE_ea%"
+          echo "Coverage for '-Xmx2G': $COVERAGE_Xmx2G%"
+          echo "Coverage for '-XX:+PrintCompilation': $COVERAGE_XX_PrintCompilation%"
+          echo "Coverage for '-XX:+UseG1GC': $COVERAGE_XX_UseG1GC%"
+          echo "Coverage for '-XX:+UnlockDiagnosticVMOptions': $COVERAGE_XX_UnlockDiagnosticVMOptions%"
 
   package:
     needs: build

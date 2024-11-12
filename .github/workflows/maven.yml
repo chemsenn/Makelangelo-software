@@ -135,7 +135,7 @@ jobs:
         run: cd $GITHUB_WORKSPACE
       
       - name: List JaCoCo Report Files
-        run: ls -l target/site/jacoco/
+        run: ls -l target/jacoco/
         
       - name: Delay Before Extracting Coverage
         run: sleep 5
@@ -145,8 +145,8 @@ jobs:
         run: |
           echo "::group::Extracting Coverage for JVM Flag: ${{ matrix.jvm_flags }}"
           cd $GITHUB_WORKSPACE
-          if [ -f target/site/jacoco/jacoco.csv ]; then
-            coverage=$(python3 config/coverage.py target/site/jacoco/jacoco.csv)
+          if [ -f target/jacoco/jacoco.csv ]; then
+            coverage=$(python3 config/coverage.py target/jacoco/jacoco.csv)
             echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage:-N/A}%"
             echo "COVERAGE_${{ matrix.jvm_flags }}=${coverage:-N/A}" >> $GITHUB_ENV
           else

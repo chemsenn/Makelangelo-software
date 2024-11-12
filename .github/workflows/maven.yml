@@ -135,7 +135,7 @@ jobs:
       - name: Upload Coverage Report 
         uses: actions/upload-artifact@v4.3.3
         with:
-          name: coverage-report-${{ matrix.jvm_flags }}
+          name: ${{ env.COVERAGE_NAME }}
           path: target/site/jacoco/
 
       - name: List Target Directory

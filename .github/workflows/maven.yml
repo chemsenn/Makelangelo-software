@@ -161,14 +161,17 @@ jobs:
              -Djacoco.outputDirectory=${report_dir} \
              -Djacoco.reportDirectory=${report_dir}
              
-           echo "Listing all directories under target/site:"
-           ls -l target/site
-           
-           echo "Listing contents of report directory:"
-           ls -l ${report_dir} || echo "Report directory not found for flag '${{ matrix.jvm_flags }}'."
+          # Fallback check for report directory
+          if [ -d "${report_dir}" ]; then
+            echo "Listing contents of custom JaCoCo report directory:"
+            ls -l ${report_dir}
+          else
+            echo "Custom report directory not found. Checking default location: target/site/jacoco"
+            ls -l target/site/jacoco || echo "JaCoCo report not found in default location either."
+          fi
         else
-           echo "JaCoCo exec file not found for flag '${{ matrix.jvm_flags }}'."
-           exit 1
+            echo "JaCoCo exec file not found for flag '${{ matrix.jvm_flags }}'."
+            exit 1
         fi
 
     - name: Extract Coverage Percentage

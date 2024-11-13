@@ -274,11 +274,13 @@ jobs:
         asset_name: ${{ env.BINARY_NIGHTLY }} # name to upload the release as, use $$ to insert date (YYYYMMDD) and 6 letter commit hash
         asset_content_type: application/zip # required by GitHub API
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
-
+    - name: Compress Binary File
+      run: zip -r binary.zip "${{ env.BINARY }}"
+      
     - name: Upload artifact for testing purpose
 #      if: github.repository == 'MarginallyClever/Makelangelo-software' || github.ref != 'refs/heads/master'
       uses: actions/upload-artifact@v4.3.3
       with:
-        name: ${{ env.BINARY }}
-        retention-days: 2
-        path: ${{ env.BINARY }}
+       name: binary-zip
+       retention-days: 2
+       path: binary.zip

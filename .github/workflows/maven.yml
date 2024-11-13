@@ -123,6 +123,8 @@ jobs:
       - name: Start JVM Flag Test Group
         run: echo "::group::Running Tests with JVM Flag '${{ matrix.jvm_flags }}'"
         
+      - name: List JaCoCo in Maven Cache
+        run: find ~/.m2/repository/org/jacoco -name "org.jacoco.agent*.jar"
         
       - name: Run Tests with JVM Flag
         run: |

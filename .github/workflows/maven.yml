@@ -148,7 +148,7 @@ jobs:
          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
          jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
          echo "Generating JaCoCo report using exec file: ${jacoco_exec_file}"
-         ./mvnw -X jacoco:report -Djacoco.dataFile=${jacoco_exec_file}
+         ./mvnw -X jacoco:report -Djacoco.dataFile=${jacoco_exec_file} -Djacoco.outputType=csv,html
 
          default_report_dir="target/site/jacoco"
          if [ -d "${default_report_dir}" ]; then

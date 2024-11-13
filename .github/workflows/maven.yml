@@ -188,11 +188,19 @@ jobs:
       
       - name: Delay Before Extracting Coverage
         run: sleep 5
-      - name: Debug JaCoCo CSV
+        
+      - name: Debug JaCoCo CSV for Flag
         run: |
-         echo "Contents of jacoco.csv:"
-         cat target/site/jacoco/jacoco.csv || echo "jacoco.csv not found"
-     
+           sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
+           report_dir="target/site/jacoco_${sanitized_flag}"
+
+           if [ -f "${report_dir}/jacoco.csv" ]; then
+             echo "Contents of jacoco.csv for flag '${{ matrix.jvm_flags }}':"
+             cat "${report_dir}/jacoco.csv"
+           else
+            echo "jacoco.csv not found for flag '${{ matrix.jvm_flags }}'."
+           fi
+ 
          
       - name: Extract Coverage Percentage
         id: coverage

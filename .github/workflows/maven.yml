@@ -170,18 +170,18 @@ jobs:
             report_dir="target/site/jacoco_${sanitized_flag}"
 
             if [ -f "${jacoco_exec_file}" ]; then
-              echo "Generating JaCoCo report using exec file: ${jacoco_exec_file}"
-              ./mvnw jacoco:report \
+               echo "Generating JaCoCo report using exec file: ${jacoco_exec_file}"
+               ./mvnw verify \
                  -Djacoco.dataFile=${jacoco_exec_file} \
                  -Djacoco.outputDirectory=${report_dir} \
-                 -Djacoco.destFile=${jacoco_exec_file}
+                 -Djacoco.report.directory=${report_dir}
       
-              echo "Listing contents of report directory:"
-              ls -l ${report_dir} || echo "Report directory not found for flag '${{ matrix.jvm_flags }}'."
-            else
-              echo "JaCoCo exec file not found for flag '${{ matrix.jvm_flags }}'."
-              exit 1
-            fi
+               echo "Listing contents of report directory:"
+               ls -l ${report_dir} || echo "Report directory not found for flag '${{ matrix.jvm_flags }}'."
+             else
+               echo "JaCoCo exec file not found for flag '${{ matrix.jvm_flags }}'."
+               exit 1
+             fi
 
 
 

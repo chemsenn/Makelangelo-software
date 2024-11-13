@@ -125,18 +125,16 @@ jobs:
 
       - name: Run Tests with JVM Flag
         run: |
-          echo "Running tests with JVM Flag: ${{ matrix.jvm_flags }}"
-          jacoco_agent_path=$(find ~/.m2 -name "jacoco-agent*.jar" | head -n 1)
-          if [ -z "$jacoco_agent_path" ]; then
-            echo "JaCoCo agent not found. Please ensure that JaCoCo is configured as a Maven dependency."
-            exit 1
-          fi
-          MAVEN_OPTS="-javaagent:${jacoco_agent_path} ${matrix.jvm_flags}" ./mvnw clean test -Djava.awt.headless=true
+         echo "Running tests with JVM Flag: ${{ matrix.jvm_flags }}"
+         sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
+         jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
+         MAVEN_OPTS="-javaagent:./org.jacoco.agent-0.8.11-runtime.jar=destfile=${jacoco_exec_file} ${matrix.jvm_flags}" ./mvnw clean test -Djava.awt.headless=true
           
       - name: Generate JaCoCo Report
         run: |
          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
-         ./mvnw jacoco:report -Djacoco.outputDirectory=target/site/jacoco_${sanitized_flag}
+         jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
+         ./mvnw jacoco:report -Djacoco.dataFile=${jacoco_exec_file} -Djacoco.outputDirectory=target/site/jacoco_${sanitized_flag}
 
       - name: Verify JaCoCo Report
         run: |

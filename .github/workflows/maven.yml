@@ -130,8 +130,8 @@ jobs:
           if [ -z "$jacoco_agent_path" ]; then
             echo "JaCoCo agent not found. Please ensure that JaCoCo is configured as a Maven dependency."
             exit 1
-         fi
-         MAVEN_OPTS="-javaagent:${jacoco_agent_path} ${matrix.jvm_flags}" ./mvnw clean test -Djava.awt.headless=true
+          fi
+          MAVEN_OPTS="-javaagent:${jacoco_agent_path} ${matrix.jvm_flags}" ./mvnw clean test -Djava.awt.headless=true
           
       - name: Generate JaCoCo Report
         run: |

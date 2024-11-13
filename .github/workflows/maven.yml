@@ -180,15 +180,6 @@ jobs:
             echo "COVERAGE_${sanitized_flag}=N/A" >> $GITHUB_ENV
           fi
 
-
-      - name: Display Coverage Summary
-        run: |
-          echo "Coverage for '-ea': $COVERAGE_ea%"
-          echo "Coverage for '-Xmx2G': $COVERAGE_Xmx2G%"
-          echo "Coverage for '-XX:+PrintCompilation': $COVERAGE_XX_PrintCompilation%"
-          echo "Coverage for '-XX:+UseG1GC': $COVERAGE_XX_UseG1GC%"
-          echo "Coverage for '-XX:+UnlockDiagnosticVMOptions': $COVERAGE_XX_UnlockDiagnosticVMOptions%"
-
   package:
     needs: build
     runs-on: ${{ matrix.os }}

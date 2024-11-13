@@ -123,17 +123,12 @@ jobs:
       - name: Start JVM Flag Test Group
         run: echo "::group::Running Tests with JVM Flag '${{ matrix.jvm_flags }}'"
 
+      # Run tests with the specified JVM flag
       - name: Run Tests with JVM Flag
-        run: |
-          echo "Running tests with JVM flag '${{ matrix.jvm_flags }}'"
-          rm -f target/site/jacoco/jacoco.csv  # Clear previous JaCoCo report
-          ./mvnw clean test -DargLine="${{ matrix.jvm_flags }}" -Djava.awt.headless=true
+        run: ./mvnw clean test -DargLine="${{ matrix.jvm_flags }}" -Djava.awt.headless=true
           
       - name: Generate JaCoCo Report
-        run: |
-          ./mvnw jacoco:report
-          echo "Listing contents of target/site/jacoco/"
-          ls -l target/site/jacoco/
+        run: ./mvnw jacoco:report
 
 
       - name: Verify JaCoCo Report
@@ -153,20 +148,13 @@ jobs:
       - name: Delay Before Extracting Coverage
         run: sleep 5
 
+      # Extract Coverage for Flag
       - name: Extract Coverage for Flag
         id: coverage
         run: |
-          echo "::group::Extracting Coverage for JVM Flag: ${{ matrix.jvm_flags }}"
-          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
-          if [ -f target/site/jacoco/jacoco.csv ]; then
-            coverage=$(python3 config/coverage.py target/site/jacoco/jacoco.csv)
-            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage:-N/A}%"
-            echo "COVERAGE_${sanitized_flag}=${coverage:-N/A}" >> $GITHUB_ENV
-          else
-            echo "JaCoCo report not found. Coverage extraction skipped."
-            echo "COVERAGE_${sanitized_flag}=N/A" >> $GITHUB_ENV
-          fi
-          echo "::endgroup::"
+          coverage=$(python3 config/coverage.py target/site/jacoco/jacoco.csv)
+          echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage:-N/A}%"
+          echo "COVERAGE_${{ matrix.jvm_flags }}=${coverage:-N/A}" >> $GITHUB_ENV
 
 
       - name: Display Coverage Summary

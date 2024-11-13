@@ -159,8 +159,11 @@ jobs:
            ./mvnw jacoco:report \
              -Djacoco.dataFile=${jacoco_exec_file} \
              -Djacoco.outputDirectory=${report_dir} \
-             -Djacoco.report.directory=${report_dir}
-
+             -Djacoco.reportDirectory=${report_dir}
+             
+           echo "Listing all directories under target/site:"
+           ls -l target/site
+           
            echo "Listing contents of report directory:"
            ls -l ${report_dir} || echo "Report directory not found for flag '${{ matrix.jvm_flags }}'."
         else

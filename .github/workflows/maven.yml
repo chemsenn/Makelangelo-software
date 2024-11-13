@@ -165,18 +165,24 @@ jobs:
         
       - name: Generate JaCoCo Report
         run: |
-          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
-          jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
-          report_dir="target/site/jacoco_${sanitized_flag}"
+            sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
+            jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
+            report_dir="target/site/jacoco_${sanitized_flag}"
 
-          if [ -f "${jacoco_exec_file}" ]; then
+            if [ -f "${jacoco_exec_file}" ]; then
               echo "Generating JaCoCo report using exec file: ${jacoco_exec_file}"
-              ./mvnw jacoco:report -Djacoco.dataFile=${jacoco_exec_file} -Djacoco.outputDirectory=${report_dir}
-               ls -l ${report_dir} || echo "Report directory not found for flag '${{ matrix.jvm_flags }}'."
-          else
+              ./mvnw jacoco:report \
+                 -Djacoco.dataFile=${jacoco_exec_file} \
+                 -Djacoco.outputDirectory=${report_dir} \
+                 -Djacoco.destFile=${jacoco_exec_file}
+      
+              echo "Listing contents of report directory:"
+              ls -l ${report_dir} || echo "Report directory not found for flag '${{ matrix.jvm_flags }}'."
+            else
               echo "JaCoCo exec file not found for flag '${{ matrix.jvm_flags }}'."
               exit 1
-          fi
+            fi
+
 
 
 

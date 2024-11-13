@@ -147,7 +147,13 @@ jobs:
             echo "JaCoCo exec file not generated for flag '${{ matrix.jvm_flags }}'."
             exit 1
         fi
+    - name: Run Tests with JaCoCo
+      run: |
+          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
+          jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
 
+          echo "Running tests with JaCoCo agent for JVM flag '${{ matrix.jvm_flags }}'"
+          ./mvnw clean test jacoco:prepare-agent -Djacoco.dataFile=${jacoco_exec_file}
     
     - name: Generate JaCoCo Report
       run: |
@@ -175,7 +181,8 @@ jobs:
            echo "JaCoCo exec file not found for flag '${{ matrix.jvm_flags }}'."
            exit 1
          fi
-
+         ls -lh target/jacoco_*.exec
+         
     - name: Extract Coverage Percentage
       id: coverage
       run: |

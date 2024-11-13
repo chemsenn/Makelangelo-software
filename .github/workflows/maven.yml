@@ -164,27 +164,32 @@ jobs:
 
       - name: Extract Coverage Percentage
         run: |
-          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
-          report_dir="target/site/jacoco"
+           sanitized_flag=$(echo "-XX:+PrintCompilation" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
+           report_dir="target/site/jacoco"
     
-          echo "Looking for JaCoCo CSV report in ${report_dir}/jacoco.csv"
-          if [ -f "${report_dir}/jacoco.csv" ]; then
-            echo "JaCoCo CSV report found."
-            missed=$(awk -F',' 'BEGIN{missed=0; covered=0} {if(NR>1) missed+=$4; covered+=$5} END {print missed}' "${report_dir}/jacoco.csv")
-            covered=$(awk -F',' 'BEGIN{missed=0; covered=0} {if(NR>1) missed+=$4; covered+=$5} END {print covered}' "${report_dir}/jacoco.csv")
+           if [ -f "${report_dir}/jacoco.csv" ]; then
+              echo "JaCoCo CSV report content:"
+              cat ${report_dir}/jacoco.csv
 
-              if [ "$((missed + covered))" -gt 0 ]; then
-                coverage=$((100 * covered / (missed + covered)))
-                echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage}%"
+             total_missed=$(awk -F',' '{if(NR > 1) sum+=$4} END {print sum}' ${report_dir}/jacoco.csv)
+             total_covered=$(awk -F',' '{if(NR > 1) sum+=$5} END {print sum}' ${report_dir}/jacoco.csv)
+
+             echo "Total missed instructions: $total_missed"
+             echo "Total covered instructions: $total_covered"
+
+              if [ "$((total_missed + total_covered))" -gt 0 ]; then
+                coverage=$((100 * total_covered / (total_missed + total_covered)))
+                echo "Coverage percentage for JVM flag '-XX:+PrintCompilation': ${coverage}%"
                 echo "COVERAGE_${sanitized_flag}=${coverage}" >> $GITHUB_ENV
               else
-                echo "No executable instructions found. Coverage percentage is set to 0%."
-                echo "COVERAGE_${sanitized_flag}=0" >> $GITHUB_ENV
+               echo "No executable instructions found. Coverage percentage is set to 0%."
+               echo "COVERAGE_${sanitized_flag}=0" >> $GITHUB_ENV
               fi
-          else
-             echo "JaCoCo CSV report not found for flag '${{ matrix.jvm_flags }}'."
+           else
+             echo "JaCoCo CSV report not found for flag '-XX:+PrintCompilation'."
              echo "COVERAGE_${sanitized_flag}=N/A" >> $GITHUB_ENV
-          fi
+           fi
+
 
 
         

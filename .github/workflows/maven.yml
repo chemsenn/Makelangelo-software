@@ -180,7 +180,8 @@ jobs:
       id: coverage
       run: |
         sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
-        report_dir="target/site/jacoco_${sanitized_flag}"
+        report_dir="target/site/jacoco
+        
         if [ -f ${report_dir}/jacoco.csv ]; then
            missed=$(awk -F',' '{if(NR>1) sum+=$4} END {print sum}' ${report_dir}/jacoco.csv)
            covered=$(awk -F',' '{if(NR>1) sum+=$5} END {print sum}' ${report_dir}/jacoco.csv)

@@ -133,7 +133,7 @@ jobs:
           
           export MAVEN_OPTS="-javaagent:${jacoco_agent_path}=destfile=${jacoco_exec_file} ${{ matrix.jvm_flags }}"
           echo "MAVEN_OPTS: $MAVEN_OPTS"
-          ./mvnw clean test -Djava.awt.headless=true || { echo "Maven tests failed"; exit 1; }
+          ./mvnw clean test || { echo "Maven tests failed"; exit 1; }
 
           if [ -f "$jacoco_exec_file" ]; then
               echo "JaCoCo exec file generated: $jacoco_exec_file"

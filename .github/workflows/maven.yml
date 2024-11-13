@@ -109,105 +109,76 @@ jobs:
          - "-XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation" # Compilation/diagnostic flag: Compilation logs
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-java@v4.2.1
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-        cache: 'maven'
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4.2.1
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
 
-    - name: Compile with Maven
-      run: ./mvnw -B clean compile
+      - name: Compile with Maven
+        run: ./mvnw -B clean compile
 
-
-    - name: List JaCoCo in Maven Cache
-      run: find ~/.m2/repository/org/jacoco -name "org.jacoco.agent*.jar"
-
-    - name: Run Tests with JVM Flag
-      run: |
-        echo "Running tests with JVM Flag: ${{ matrix.jvm_flags }}"
-        sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
-        jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
-        jacoco_agent_path="/home/runner/.m2/repository/org/jacoco/org.jacoco.agent/0.8.11/org.jacoco.agent-0.8.11-runtime.jar"
-
-        if [ ! -f "$jacoco_agent_path" ]; then
-          echo "JaCoCo agent not found at $jacoco_agent_path. Exiting."
-          exit 1
-        fi
-
-        export MAVEN_OPTS="-javaagent:${jacoco_agent_path}=destfile=${jacoco_exec_file} ${{ matrix.jvm_flags }}"
-
-        echo "MAVEN_OPTS: $MAVEN_OPTS"
-        ./mvnw clean test -Djava.awt.headless=true || { echo "Maven tests failed"; exit 1; }
-
-        if [ -f "$jacoco_exec_file" ]; then
-            echo "JaCoCo exec file generated: $jacoco_exec_file"
-            ls -l "$jacoco_exec_file"
-        else
-            echo "JaCoCo exec file not generated for flag '${{ matrix.jvm_flags }}'."
+      - name: Run Tests with JVM Flag
+        run: |
+          echo "Running tests with JVM Flag: ${{ matrix.jvm_flags }}"
+          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
+          jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
+          jacoco_agent_path="$(find ~/.m2/repository/org/jacoco -name "org.jacoco.agent*.jar" | head -n 1)"
+          
+          if [ ! -f "$jacoco_agent_path" ]; then
+            echo "JaCoCo agent not found at $jacoco_agent_path. Exiting."
             exit 1
-        fi
-    - name: Run Tests with JaCoCo
-      run: |
-        sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
-        jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
-        fallback_exec_file="target/jacoco.exec"
-
-        echo "Running tests with JaCoCo agent for JVM flag '${{ matrix.jvm_flags }}'"
-        ./mvnw clean test jacoco:prepare-agent -Djacoco.dataFile=${jacoco_exec_file}
-
-        echo "Listing files in target directory:"
-        ls -l target
-
-        # Check if the exec file exists
-        if [ -f "${jacoco_exec_file}" ]; then
-            echo "JaCoCo exec file found: ${jacoco_exec_file}"
-        elif [ -f "${fallback_exec_file}" ]; then
-            echo "Fallback JaCoCo exec file found: ${fallback_exec_file}"
-            jacoco_exec_file="${fallback_exec_file}"
-        else
-            echo "JaCoCo exec file not found for flag '${{ matrix.jvm_flags }}'."
-            exit 1
-        fi
-    
-    - name: Generate JaCoCo Report
-      run: |
-         echo "Generating JaCoCo report using exec file: ${jacoco_exec_file}"
-         ./mvnw jacoco:report -Djacoco.dataFile=${jacoco_exec_file}
- 
-         default_report_dir="target/site/jacoco"
-
-         if [ -d "${default_report_dir}" ]; then
-            echo "JaCoCo report generated successfully. You can find the report at: ${default_report_dir}/index.html"
-            ls -l ${default_report_dir}
-         else
-            echo "JaCoCo report directory not found. Report generation may have failed."
-            exit 1
-         fi
-         
-         
-    - name: Extract Coverage Percentage
-      id: coverage
-      run: |
-        sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
-        report_dir="target/site/jacoco"
-        
-        if [ -f ${report_dir}/jacoco.csv ]; then
-           missed=$(awk -F',' '{if(NR>1) sum+=$4} END {print sum}' ${report_dir}/jacoco.csv)
-           covered=$(awk -F',' '{if(NR>1) sum+=$5} END {print sum}' ${report_dir}/jacoco.csv)
-
-          if [ "$((missed + covered))" -gt 0 ]; then
-            coverage=$((100 * covered / (missed + covered)))
-            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage}%"
-            echo "COVERAGE_${sanitized_flag}=${coverage}" >> $GITHUB_ENV
-          else
-            echo "No instructions found. Coverage percentage is set to 0%."
-            echo "COVERAGE_${sanitized_flag}=0" >> $GITHUB_ENV
           fi
-        else
-          echo "JaCoCo report not found for flag '${{ matrix.jvm_flags }}'."
-          echo "COVERAGE_${sanitized_flag}=N/A" >> $GITHUB_ENV
-        fi
+          
+          export MAVEN_OPTS="-javaagent:${jacoco_agent_path}=destfile=${jacoco_exec_file} ${{ matrix.jvm_flags }}"
+          echo "MAVEN_OPTS: $MAVEN_OPTS"
+          ./mvnw clean test -Djava.awt.headless=true || { echo "Maven tests failed"; exit 1; }
+
+          if [ -f "$jacoco_exec_file" ]; then
+              echo "JaCoCo exec file generated: $jacoco_exec_file"
+              ls -l "$jacoco_exec_file"
+          else
+              echo "JaCoCo exec file not generated for flag '${{ matrix.jvm_flags }}'."
+              exit 1
+          fi
+
+      - name: Generate JaCoCo Report
+        run: |
+          echo "Generating JaCoCo report using exec file: ${jacoco_exec_file}"
+          ./mvnw jacoco:report -Djacoco.dataFile=${jacoco_exec_file}
+          default_report_dir="target/site/jacoco"
+
+          if [ -d "${default_report_dir}" ]; then
+             echo "JaCoCo report generated successfully. You can find the report at: ${default_report_dir}/index.html"
+             ls -l ${default_report_dir}
+          else
+             echo "JaCoCo report directory not found. Report generation may have failed."
+             exit 1
+          fi
+
+      - name: Extract Coverage Percentage
+        run: |
+          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
+          report_dir="target/site/jacoco"
+          
+          if [ -f ${report_dir}/jacoco.csv ]; then
+             missed=$(awk -F',' '{if(NR>1) sum+=$4} END {print sum}' ${report_dir}/jacoco.csv)
+             covered=$(awk -F',' '{if(NR>1) sum+=$5} END {print sum}' ${report_dir}/jacoco.csv)
+
+            if [ "$((missed + covered))" -gt 0 ]; then
+              coverage=$((100 * covered / (missed + covered)))
+              echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage}%"
+              echo "COVERAGE_${sanitized_flag}=${coverage}" >> $GITHUB_ENV
+            else
+              echo "No instructions found. Coverage percentage is set to 0%."
+              echo "COVERAGE_${sanitized_flag}=0" >> $GITHUB_ENV
+            fi
+          else
+            echo "JaCoCo report not found for flag '${{ matrix.jvm_flags }}'."
+            echo "COVERAGE_${sanitized_flag}=N/A" >> $GITHUB_ENV
+          fi
+
         
   package:
     needs: build

@@ -158,6 +158,9 @@ jobs:
             echo "JaCoCo report directory not found. Report generation may have failed."
             exit 1
          fi
+      - name: Print JaCoCo CSV Content
+        run: |
+          cat target/site/jacoco/jacoco.csv
 
       - name: Extract Coverage Percentage
         run: |

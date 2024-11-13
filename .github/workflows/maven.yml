@@ -184,8 +184,6 @@ jobs:
           else
              echo "JaCoCo report already exists. Skipping generation."
           fi
-      - name: List JaCoCo Report Directory
-        run: ls -l target/site/jacoco_*
 
       
       - name: Delay Before Extracting Coverage

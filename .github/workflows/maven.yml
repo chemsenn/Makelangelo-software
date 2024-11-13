@@ -119,8 +119,6 @@ jobs:
     - name: Compile with Maven
       run: ./mvnw -B clean compile
 
-    - name: Start JVM Flag Test Group
-      run: echo "::group::Running Tests with JVM Flag '${{ matrix.jvm_flags }}'"
 
     - name: List JaCoCo in Maven Cache
       run: find ~/.m2/repository/org/jacoco -name "org.jacoco.agent*.jar"
@@ -158,7 +156,7 @@ jobs:
 
         if [ -f "${jacoco_exec_file}" ]; then
            echo "Generating JaCoCo report using exec file: ${jacoco_exec_file}"
-           ./mvnw verify \
+           ./mvnw jacoco:report \
              -Djacoco.dataFile=${jacoco_exec_file} \
              -Djacoco.outputDirectory=${report_dir} \
              -Djacoco.report.directory=${report_dir}

@@ -102,11 +102,11 @@ jobs:
     strategy:
      matrix:
        jvm_flags:
-         - "-ea" # Standard Flag: Assertions activated
-         - "-Xmx2G" # Heap size flag: Maximal heap size of 2GB
-         - "-XX:+PrintCompilation" # JIT Compilation flag, type print: all the methods compiled by the JIT
+         - "-XX:+TieredCompilation" # Compiler flag
+         - "-Xmx4G" # Heap size flag: Maximal heap size of 4GB
+         - "-XX:+HeapDumpOnOutOfMemoryError" # Diagnostic
          - "-XX:+UseG1GC" # Garbage collector flag: Use the G1 GC
-         - "-XX:+UnlockDiagnosticVMOptions -XX:+LogCompilation" # Compilation/diagnostic flag: Compilation logs
+         - "-XX:+UseStringDeduplication" # Memory oprimization 
 
     steps:
       - uses: actions/checkout@v4

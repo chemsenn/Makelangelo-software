@@ -160,17 +160,25 @@ jobs:
       - name: Extract Coverage Percentage
         id: coverage
         run: |
-          echo "::group::Extracting Coverage for JVM Flag: ${{ matrix.jvm_flags }}"
           sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
           if [ -f target/site/jacoco/jacoco.csv ]; then
-            coverage=$(grep -m 1 'TOTAL' target/site/jacoco/jacoco.csv | cut -d',' -f4)
-            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage:-N/A}%"
-            echo "COVERAGE_${sanitized_flag}=${coverage:-N/A}" >> $GITHUB_ENV
+            # Extraire les totaux des instructions manquées et couvertes
+             missed=$(awk -F',' '{if(NR>1) sum+=$4} END {print sum}' target/site/jacoco/jacoco.csv) 
+             covered=$(awk -F',' '{if(NR>1) sum+=$5} END {print sum}' target/site/jacoco/jacoco.csv)
+
+            # Calculer le pourcentage de couverture
+            if [ "$((missed + covered))" -gt 0 ]; then
+               coverage=$((100 * covered / (missed + covered)))
+               echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage}%"
+               echo "COVERAGE_${sanitized_flag}=${coverage}" >> $GITHUB_ENV
+            else
+               echo "No instructions found. Coverage percentage is set to 0%."
+               echo "COVERAGE_${sanitized_flag}=0" >> $GITHUB_ENV
+            fi
           else
             echo "JaCoCo report not found. Coverage extraction skipped."
             echo "COVERAGE_${sanitized_flag}=N/A" >> $GITHUB_ENV
           fi
-          echo "::endgroup::"
 
 
       - name: Display Coverage Summary

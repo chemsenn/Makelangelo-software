@@ -123,12 +123,16 @@ jobs:
       - name: Start JVM Flag Test Group
         run: echo "::group::Running Tests with JVM Flag '${{ matrix.jvm_flags }}'"
 
-      # Run tests with the specified JVM flag
       - name: Run Tests with JVM Flag
-        run: ./mvnw clean test -DargLine="${{ matrix.jvm_flags }}" -Djava.awt.headless=true
+        run: |
+          echo "Running tests with JVM Flag: ${{ matrix.jvm_flags }}"
+          MAVEN_OPTS="${{ matrix.jvm_flags }}" ./mvnw clean test -Djava.awt.headless=true
           
       - name: Generate JaCoCo Report
-        run: ./mvnw jacoco:report
+        run: |
+          ./mvnw jacoco:report
+          echo "Listing contents of target/site/jacoco/"
+          ls -l target/site/jacoco/
 
 
       - name: Verify JaCoCo Report
@@ -148,13 +152,20 @@ jobs:
       - name: Delay Before Extracting Coverage
         run: sleep 5
 
-      # Extract Coverage for Flag
-      - name: Extract Coverage for Flag
+      - name: Extract Coverage Percentage
         id: coverage
         run: |
-          coverage=$(python3 config/coverage.py target/site/jacoco/jacoco.csv)
-          echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage:-N/A}%"
-          echo "COVERAGE_${{ matrix.jvm_flags }}=${coverage:-N/A}" >> $GITHUB_ENV
+          echo "::group::Extracting Coverage for JVM Flag: ${{ matrix.jvm_flags }}"
+          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+            coverage=$(grep -m 1 'TOTAL' target/site/jacoco/jacoco.csv | cut -d',' -f4)
+            echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage:-N/A}%"
+            echo "COVERAGE_${sanitized_flag}=${coverage:-N/A}" >> $GITHUB_ENV
+          else
+            echo "JaCoCo report not found. Coverage extraction skipped."
+            echo "COVERAGE_${sanitized_flag}=N/A" >> $GITHUB_ENV
+          fi
+          echo "::endgroup::"
 
 
       - name: Display Coverage Summary

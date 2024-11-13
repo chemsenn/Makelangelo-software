@@ -122,13 +122,21 @@ jobs:
       # Group for JVM flag execution
       - name: Start JVM Flag Test Group
         run: echo "::group::Running Tests with JVM Flag '${{ matrix.jvm_flags }}'"
-
+        
+        
       - name: Run Tests with JVM Flag
         run: |
-         echo "Running tests with JVM Flag: ${{ matrix.jvm_flags }}"
-         sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
-         jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
-         MAVEN_OPTS="-javaagent:./org.jacoco.agent-0.8.11-runtime.jar=destfile=${jacoco_exec_file} ${matrix.jvm_flags}" ./mvnw clean test -Djava.awt.headless=true
+          echo "Running tests with JVM Flag: ${{ matrix.jvm_flags }}"
+          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
+          jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
+          jacoco_agent_path="./org.jacoco.agent-0.8.11-runtime.jar"
+          if [ ! -f "$jacoco_agent_path" ]; then
+            echo "JaCoCo agent not found. Exiting."
+            exit 1
+          fi
+          export MAVEN_OPTS="-javaagent:${jacoco_agent_path}=destfile=${jacoco_exec_file} ${{ matrix.jvm_flags }}"
+          ./mvnw clean test -Djava.awt.headless=true
+
           
       - name: Generate JaCoCo Report
         run: |

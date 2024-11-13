@@ -181,7 +181,7 @@ jobs:
            echo "JaCoCo exec file not found for flag '${{ matrix.jvm_flags }}'."
            exit 1
          fi
-         ls -lh target/jacoco_*.exec
+         
          
     - name: Extract Coverage Percentage
       id: coverage

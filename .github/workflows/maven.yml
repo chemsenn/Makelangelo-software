@@ -151,7 +151,12 @@ jobs:
       
       - name: Delay Before Extracting Coverage
         run: sleep 5
+      - name: Debug JaCoCo CSV
+        run: |
+         echo "Contents of jacoco.csv:"
+         cat target/site/jacoco/jacoco.csv || echo "jacoco.csv not found"
 
+         
       - name: Extract Coverage Percentage
         id: coverage
         run: |

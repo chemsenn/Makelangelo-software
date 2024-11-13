@@ -170,10 +170,15 @@ jobs:
                 coverage=$((100 * covered / (missed + covered)))
                 echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage}%"
                 echo "COVERAGE_${sanitized_flag}=${coverage}" >> $GITHUB_ENV
-             else
-                echo "JaCoCo CSV report not found for flag '${{ matrix.jvm_flags }}'."
-                echo "COVERAGE_${sanitized_flag}=N/A" >> $GITHUB_ENV
-             fi
+              else
+                echo "No executable instructions found. Coverage percentage is set to 0%."
+                echo "COVERAGE_${sanitized_flag}=0" >> $GITHUB_ENV
+              fi
+          else
+             echo "JaCoCo CSV report not found for flag '${{ matrix.jvm_flags }}'."
+             echo "COVERAGE_${sanitized_flag}=N/A" >> $GITHUB_ENV
+          fi
+
 
 
         

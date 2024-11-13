@@ -134,21 +134,20 @@ jobs:
           jacoco_agent_path="/home/runner/.m2/repository/org/jacoco/org.jacoco.agent/0.8.11/org.jacoco.agent-0.8.11-runtime.jar"
 
           if [ ! -f "$jacoco_agent_path" ]; then
-            echo "JaCoCo agent not found at $jacoco_agent_path. Exiting."
-            exit 1
+             echo "JaCoCo agent not found at $jacoco_agent_path. Exiting."
+             exit 1
           fi
 
           echo "Using JaCoCo exec file: $jacoco_exec_file"
-          echo "Setting MAVEN_OPTS with agent and JVM flags"
+          MAVEN_OPTS="-javaagent:${jacoco_agent_path}=destfile=${jacoco_exec_file} ${matrix.jvm_flags}"
+          export MAVEN_OPTS
 
-          export MAVEN_OPTS="-javaagent:${jacoco_agent_path}=destfile=${jacoco_exec_file} '${{ matrix.jvm_flags }}'"
           echo "MAVEN_OPTS: $MAVEN_OPTS"
-
           ./mvnw clean test -Djava.awt.headless=true || { echo "Maven tests failed"; exit 1; }
 
           if [ -f "$jacoco_exec_file" ]; then
-             echo "JaCoCo exec file generated: $jacoco_exec_file"
-             ls -l "$jacoco_exec_file"
+            echo "JaCoCo exec file generated: $jacoco_exec_file"
+            ls -l "$jacoco_exec_file"
           else
             echo "JaCoCo exec file not generated for flag '${{ matrix.jvm_flags }}'."
             exit 1

@@ -146,9 +146,16 @@ jobs:
           
       - name: Generate JaCoCo Report
         run: |
-         sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
-         jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
-         ./mvnw jacoco:report -Djacoco.dataFile=${jacoco_exec_file} -Djacoco.outputDirectory=target/site/jacoco_${sanitized_flag}
+          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^a-zA-Z0-9]/_/g')
+          jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
+          report_dir="target/site/jacoco_${sanitized_flag}"
+
+          if [ -f "${jacoco_exec_file}" ]; then
+            ./mvnw jacoco:report -Djacoco.dataFile=${jacoco_exec_file} -Djacoco.outputDirectory=${report_dir}
+          else
+            echo "JaCoCo exec file not found for flag '${{ matrix.jvm_flags }}'."
+          fi
+
 
       - name: Verify JaCoCo Report
         run: |
@@ -159,9 +166,7 @@ jobs:
              echo "JaCoCo report already exists. Skipping generation."
           fi
       - name: List JaCoCo Report Directory
-        run: |
-           echo "Checking contents of target/site/jacoco/"
-           ls -l target/site/jacoco/
+        run: ls -l target/site/jacoco_*
 
       
       - name: Delay Before Extracting Coverage
@@ -186,8 +191,8 @@ jobs:
               echo "Coverage percentage for JVM flag '${{ matrix.jvm_flags }}': ${coverage}%"
               echo "COVERAGE_${sanitized_flag}=${coverage}" >> $GITHUB_ENV
             else
-             echo "No instructions found. Coverage percentage is set to 0%."
-             echo "COVERAGE_${sanitized_flag}=0" >> $GITHUB_ENV
+              echo "No instructions found. Coverage percentage is set to 0%."
+              echo "COVERAGE_${sanitized_flag}=0" >> $GITHUB_ENV
             fi
           else
             echo "JaCoCo report not found for flag '${{ matrix.jvm_flags }}'."

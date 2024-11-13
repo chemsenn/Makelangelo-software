@@ -149,37 +149,40 @@ jobs:
         fi
     - name: Run Tests with JaCoCo
       run: |
-          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
-          jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
+        sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
+        jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
+        fallback_exec_file="target/jacoco.exec"
 
-          echo "Running tests with JaCoCo agent for JVM flag '${{ matrix.jvm_flags }}'"
-          ./mvnw clean test jacoco:prepare-agent -Djacoco.dataFile=${jacoco_exec_file}
+        echo "Running tests with JaCoCo agent for JVM flag '${{ matrix.jvm_flags }}'"
+        ./mvnw clean test jacoco:prepare-agent -Djacoco.dataFile=${jacoco_exec_file}
+
+        echo "Listing files in target directory:"
+        ls -l target
+
+        # Check if the exec file exists
+        if [ -f "${jacoco_exec_file}" ]; then
+            echo "JaCoCo exec file found: ${jacoco_exec_file}"
+        elif [ -f "${fallback_exec_file}" ]; then
+            echo "Fallback JaCoCo exec file found: ${fallback_exec_file}"
+            jacoco_exec_file="${fallback_exec_file}"
+        else
+            echo "JaCoCo exec file not found for flag '${{ matrix.jvm_flags }}'."
+            exit 1
+        fi
     
     - name: Generate JaCoCo Report
       run: |
-         sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
-         jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
+         echo "Generating JaCoCo report using exec file: ${jacoco_exec_file}"
+         ./mvnw jacoco:report -Djacoco.dataFile=${jacoco_exec_file}
+ 
          default_report_dir="target/site/jacoco"
 
-         echo "Original JVM Flag: '${{ matrix.jvm_flags }}'"
-         echo "Sanitized Flag: '${sanitized_flag}'"
-
-         if [ -f "${jacoco_exec_file}" ]; then
-              echo "Generating JaCoCo report using exec file: ${jacoco_exec_file}"
-             ./mvnw jacoco:report -Djacoco.dataFile=${jacoco_exec_file}
-
-              # List the default report directory
-               if [ -d "${default_report_dir}" ]; then
-                    echo "Listing contents of JaCoCo report directory:"
-                    ls -l ${default_report_dir}
-                    echo "JaCoCo report generated successfully. You can find the report at: ${default_report_dir}/index.html"
-              else
-                  echo "JaCoCo report directory not found. Report generation may have failed."
-                  exit 1
-              fi
+         if [ -d "${default_report_dir}" ]; then
+            echo "JaCoCo report generated successfully. You can find the report at: ${default_report_dir}/index.html"
+            ls -l ${default_report_dir}
          else
-           echo "JaCoCo exec file not found for flag '${{ matrix.jvm_flags }}'."
-           exit 1
+            echo "JaCoCo report directory not found. Report generation may have failed."
+            exit 1
          fi
          
          

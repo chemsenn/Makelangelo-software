@@ -146,7 +146,7 @@ jobs:
       - name: Generate JaCoCo Report
         run: |
           echo "Generating JaCoCo report using exec file: ${jacoco_exec_file}"
-          ./mvnw jacoco:report -Djacoco.dataFile=${jacoco_exec_file}
+          ./mvnw jacoco:report -Djacoco.dataFile=${jacoco_exec_file} || { echo "Error generating JaCoCo report"; exit 1; }
           default_report_dir="target/site/jacoco"
 
           if [ -d "${default_report_dir}" ]; then

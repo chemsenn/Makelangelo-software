@@ -181,7 +181,7 @@ jobs:
           fi
 
       - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4.3.3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ strategy.job-index }}
           path: target/coverage-reports
@@ -199,7 +199,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all coverage reports
-        uses: actions/download-artifact@v4.3.3
+        uses: actions/download-artifact@v4
         with:
           path: coverage-reports
 
@@ -219,7 +219,7 @@ jobs:
           done
 
       - name: Upload Summary
-        uses: actions/upload-artifact@v4.3.3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-summary
           path: coverage-summary.md

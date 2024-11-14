@@ -27,13 +27,13 @@ jobs:
 
     - name: Build and Test with Maven
       timeout-minutes: 15
-      run: ./mvnw -B verify
-      
+      run: mvn verify -DargLine="@{argLine} ${{ matrix.jvm_flags }}"
+
   
          
     
 
-    - name: Get JaCoCo Coverage
+    - name: Get JaCoCo Coverage with 
       id: coverage  
       run: |
         coverage=$(python3 config/coverage.py target/site/jacoco/jacoco.csv) 

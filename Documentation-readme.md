@@ -43,9 +43,8 @@
 - https://aboullaite.me/understanding-jit-compiler-just-in-time-compiler/
 - https://stackoverflow.com/questions/14763079/what-are-the-xms-and-xmx-parameters-when-starting-jvm
   
-### Les modifications de l'action 'Maven.yml'
+### Les modifications de l'action 'Maven.yml' et test.yml
 
 ##### Ajout #1 : Une matrice nomée "jvm_flags" contenant les 5 flags (décrient plus haut). La matrice permet de rouler en parallèle les tests avec les 5 flags afin d'atteindre une performance maximale 
-##### Ajout #2 : 
 
 

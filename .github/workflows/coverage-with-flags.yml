@@ -14,14 +14,17 @@ jobs:
     strategy:
       matrix:
         jvm_flags:
-          # Core optimization flags - verified compatible with JDK 17
-          - "-XX:+TieredCompilation -XX:+UseCompilerSafepoints"
-          # Memory management flags
-          - "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
-          # String optimization flags
-          - "-XX:+UseStringDeduplication -XX:StringDeduplicationAgeThreshold=3"
-          # Memory optimization flags
-          - "-XX:+UseCompressedOops -XX:+UseCompressedClassPointers"
+          # Tier 1: Basic optimization flags
+          - "-XX:+TieredCompilation"
+          
+          # Tier 2: GC optimization
+          - "-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+ParallelRefProcEnabled"
+          
+          # Tier 3: Memory optimization
+          - "-XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+OptimizeStringConcat"
+          
+          # Tier 4: Combined optimizations
+          - "-XX:+TieredCompilation -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
 
     steps:
       - uses: actions/checkout@v4
@@ -45,9 +48,15 @@ jobs:
               return 1
             fi
             
-            # Check for conflicting flags
+            # Check for conflicting GC flags
             if [[ "$flags" == *"-XX:+UseParallelGC"* ]] && [[ "$flags" == *"-XX:+UseG1GC"* ]]; then
               echo "Error: Conflicting GC flags detected"
+              return 1
+            fi
+            
+            # Check for conflicting compilation flags
+            if [[ "$flags" == *"-XX:-TieredCompilation"* ]] && [[ "$flags" == *"-XX:+TieredCompilation"* ]]; then
+              echo "Error: Conflicting compilation flags detected"
               return 1
             fi
             
@@ -66,19 +75,17 @@ jobs:
           echo "Flag Purpose:"
           case "${{ matrix.jvm_flags }}" in
             *"TieredCompilation"*)
-              echo "- TieredCompilation: Progressive optimization through multiple compilation tiers"
-              echo "- UseCompilerSafepoints: Ensures reliable optimization points"
+              echo "- TieredCompilation: Enables multi-level JIT compilation for optimal performance"
               ;;
             *"UseG1GC"*)
-              echo "- G1GC: Garbage-First Garbage Collector for large heaps"
-              echo "- MaxGCPauseMillis: Target pause time goal"
-              ;;
-            *"UseStringDeduplication"*)
-              echo "- StringDeduplication: Reduces memory by sharing identical strings"
+              echo "- G1GC: Garbage-First Garbage Collector optimized for large heaps"
+              echo "- MaxGCPauseMillis: Sets target pause time for GC"
+              echo "- ParallelRefProcEnabled: Enables parallel reference processing"
               ;;
             *"UseCompressedOops"*)
-              echo "- CompressedOops: 32-bit object references on 64-bit JVM"
-              echo "- UseCompressedClassPointers: Compressed class pointers"
+              echo "- CompressedOops: Optimizes object references on 64-bit JVM"
+              echo "- UseCompressedClassPointers: Optimizes class pointers"
+              echo "- OptimizeStringConcat: Optimizes string concatenation operations"
               ;;
           esac
 

@@ -15,13 +15,13 @@ jobs:
       matrix:
         jvm_flags:
           # Performance optimization flags
-          - "-XX:+TieredCompilation"  # Enables tiered compilation for better performance
+          - "-XX:+TieredCompilation -XX:+UseCompilerSafepoints"  # Enables tiered compilation for better performance
           - "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"  # Uses G1 garbage collector with pause time goal
           # Diagnostic and monitoring flags
           - "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp"  # Generates heap dump on OOM
           # Memory optimization flags
           - "-XX:+UseStringDeduplication -XX:StringDeduplicationAgeThreshold=3"  # Optimizes string memory usage
-          - "-Xmx2G -XX:+UseCompressedOops"  # Sets max heap size and optimizes object pointer representation
+          - "-XX:+UseCompressedOops -XX:+UseCompressedClassPointers"  # Optimizes object pointer representation
 
     steps:
       - uses: actions/checkout@v4
@@ -73,32 +73,64 @@ jobs:
           fi
           
           # Run tests with JaCoCo and JVM flags
-          export MAVEN_OPTS="${{ matrix.jvm_flags }}"
-          ./mvnw -B test jacoco:report
+          export MAVEN_OPTS="-javaagent:${jacoco_agent_path}=destfile=${jacoco_exec_file} ${{ matrix.jvm_flags }}"
+          echo "Running with MAVEN_OPTS: $MAVEN_OPTS"
+          
+          ./mvnw -B test
           
           if [ ! -f "$jacoco_exec_file" ]; then
             echo "Error: JaCoCo execution data file not generated"
             exit 1
           fi
 
+      - name: Generate Coverage Report
+        run: |
+          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
+          jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
+          
+          # Generate HTML and CSV reports
+          ./mvnw jacoco:report -Djacoco.dataFile=${jacoco_exec_file}
+          
+          # Create flag-specific report directory
+          mkdir -p "target/coverage-reports/${sanitized_flag}"
+          cp -r target/site/jacoco/* "target/coverage-reports/${sanitized_flag}/"
+
+      - name: Extract Coverage Metrics
+        id: coverage
+        run: |
+          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
+          report_file="target/site/jacoco/jacoco.csv"
+          
+          if [ -f "$report_file" ]; then
+            # Calculate total coverage
+            total_lines=$(awk -F',' 'NR>1 {covered+=$5; missed+=$4} END {print covered+missed}' "$report_file")
+            covered_lines=$(awk -F',' 'NR>1 {covered+=$5} END {print covered}' "$report_file")
+            
+            if [ "$total_lines" -gt 0 ]; then
+              coverage=$((100 * covered_lines / total_lines))
+              echo "Coverage with ${{ matrix.jvm_flags }}: ${coverage}%"
+              echo "COVERAGE=${coverage}" >> $GITHUB_ENV
+            else
+              echo "No executable lines found"
+              echo "COVERAGE=0" >> $GITHUB_ENV
+            fi
+          else
+            echo "Coverage report not found"
+            echo "COVERAGE=0" >> $GITHUB_ENV
+          fi
+
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4.3.3
         with:
           name: coverage-report-${{ strategy.job-index }}
-          path: target/site/jacoco
+          path: target/coverage-reports
           retention-days: 14
 
       - name: Report Coverage
         run: |
           echo "Coverage Summary for ${{ matrix.jvm_flags }}"
-          coverage_file="target/site/jacoco/index.html"
-          if [ -f "$coverage_file" ]; then
-            echo "Coverage report generated successfully"
-            echo "Full report available in artifacts"
-          else
-            echo "Coverage report generation failed"
-            exit 1
-          fi
+          echo "Coverage: ${{ env.COVERAGE }}%"
+          echo "Full report available in artifacts"
 
   coverage-summary:
     needs: test-with-flags
@@ -112,13 +144,14 @@ jobs:
       - name: Generate Summary
         run: |
           echo "# Coverage Summary" > coverage-summary.md
-          echo "| JVM Flag | Coverage Report |" >> coverage-summary.md
-          echo "|----------|-----------------|" >> coverage-summary.md
+          echo "| JVM Flags | Coverage |" >> coverage-summary.md
+          echo "|-----------|-----------|" >> coverage-summary.md
           
           for report in coverage-reports/coverage-report-*/; do
-            if [ -d "$report" ]; then
-              flag_name=$(basename "$(dirname "$report")")
-              echo "| $flag_name | [View Report]($report/index.html) |" >> coverage-summary.md
+            flag_name=$(basename "$(dirname "$report")")
+            if [ -f "$report/jacoco.csv" ]; then
+              coverage=$(awk -F',' 'NR>1 {covered+=$5; missed+=$4} END {printf "%.2f", (covered/(covered+missed))*100}' "$report/jacoco.csv")
+              echo "| $flag_name | ${coverage}% |" >> coverage-summary.md
             fi
           done
 

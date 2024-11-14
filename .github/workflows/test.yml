@@ -7,6 +7,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+     matrix:
+       jvm_flags:
+         - "-XX:+TieredCompilation" # Compiler flag
+         - "-Xmx4G" # Heap size flag: Maximal heap size of 4GB
+         - "-XX:+HeapDumpOnOutOfMemoryError" # Diagnostic
+         - "-XX:+UseG1GC" # Garbage collector flag: Use the G1 GC
+         - "-XX:+UseStringDeduplication" # Memory oprimization
+    
     steps:
     - uses: actions/checkout@v4
 
@@ -19,6 +28,10 @@ jobs:
     - name: Build and Test with Maven
       timeout-minutes: 15
       run: ./mvnw -B verify
+      
+  
+         
+    
 
     - name: Get JaCoCo Coverage
       id: coverage  

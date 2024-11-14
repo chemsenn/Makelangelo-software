@@ -43,10 +43,6 @@
 - https://aboullaite.me/understanding-jit-compiler-just-in-time-compiler/
 - https://stackoverflow.com/questions/14763079/what-are-the-xms-and-xmx-parameters-when-starting-jvm
   
-### Les modifications de l'action 'Maven.yml'
-Nous pensons que nous avons trop compliqué l'action, il est sûr qu'il existe une façon beaucoup plus simple de faire rouler des flags et extracter le coverage pourcentage.
-##### Ajout #1 : Une matrice nomée "jvm_flags" contenant les 5 flags (décrient plus haut). La matrice permet de rouler en parallèle les tests avec les 5 flags afin d'atteindre une performance maximale 
-##### Ajout #2 : Utilisation de JaCoCo pour calculer le coverage pourcentage. Nous avons utiliser l'option MAVEN_OPTS qui est utilisée avec MAVEN pour transmettre des options à la JVM
-##### Ajout #3 : Nous avons rajouter une fonction qui genere un rapport jacoco et une autre qui extract le pourcentage de coverage (generate coverage report) (extract coverage metrics).Nous avons eu beaucoup de problème avec le pourcentage de coverage, nous sommes pas sûr des résultats obtenus.
+
 
 

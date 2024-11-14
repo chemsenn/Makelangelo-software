@@ -37,6 +37,7 @@
 - ###### Qualité : Makelangelo intéragit souvent avec les utilisateurs afin de sauvegarder/charger des dessins et ce flag permet une application plus fiable considérant qu'il y a moins de pression sur le système de gestion de mémoire. 
 - ###### Observabilité : Ce flag n'offre pas vraiment une sorte d'observabilité certaine, mais il reste utile pour donner des indices sur comment améliorer la gestion de la mémoire.
 
+Concernant l'action nous avons ajouté une matrice qui roule les 5 flags en parallèle ce qui facilite le tout. Nous avons utiliser les fonctions deja mise dans le fichier workflow test.yml
 
 #Sources:
 - https://blog.gceasy.io/usestringdeduplication/#more-2861

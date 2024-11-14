@@ -1,0 +1,130 @@
+name: Coverage with JVM Flags
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test-with-flags:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        jvm_flags:
+          # Performance optimization flags
+          - "-XX:+TieredCompilation"  # Enables tiered compilation for better performance
+          - "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"  # Uses G1 garbage collector with pause time goal
+          # Diagnostic and monitoring flags
+          - "-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/tmp"  # Generates heap dump on OOM
+          # Memory optimization flags
+          - "-XX:+UseStringDeduplication -XX:StringDeduplicationAgeThreshold=3"  # Optimizes string memory usage
+          - "-Xmx2G -XX:+UseCompressedOops"  # Sets max heap size and optimizes object pointer representation
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4.2.1
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Document JVM Flag Purpose
+        run: |
+          echo "Running tests with JVM Flag: ${{ matrix.jvm_flags }}"
+          echo "Flag Purpose:"
+          case "${{ matrix.jvm_flags }}" in
+            *"TieredCompilation"*)
+              echo "- TieredCompilation: Enables multi-level compilation for better performance"
+              ;;
+            *"UseG1GC"*)
+              echo "- G1GC: Modern garbage collector optimized for large heaps"
+              ;;
+            *"HeapDumpOnOutOfMemoryError"*)
+              echo "- HeapDump: Diagnostic tool for memory analysis"
+              ;;
+            *"UseStringDeduplication"*)
+              echo "- StringDeduplication: Reduces memory footprint by sharing string instances"
+              ;;
+            *"UseCompressedOops"*)
+              echo "- CompressedOops: Reduces memory usage for object references"
+              ;;
+          esac
+
+      - name: Compile with Maven
+        run: ./mvnw -B clean compile
+
+      - name: Run Tests with JaCoCo Coverage
+        run: |
+          # Sanitize flag name for file naming
+          sanitized_flag=$(echo "${{ matrix.jvm_flags }}" | sed 's/[^-a-zA-Z0-9+._]/_/g' | tr ' ' '_')
+          jacoco_exec_file="target/jacoco_${sanitized_flag}.exec"
+          
+          # Find JaCoCo agent path
+          jacoco_agent_path="$(find ~/.m2/repository/org/jacoco -name "org.jacoco.agent*.jar" | head -n 1)"
+          
+          if [ ! -f "$jacoco_agent_path" ]; then
+            echo "Error: JaCoCo agent not found"
+            exit 1
+          fi
+          
+          # Run tests with JaCoCo and JVM flags
+          export MAVEN_OPTS="${{ matrix.jvm_flags }}"
+          ./mvnw -B test jacoco:report
+          
+          if [ ! -f "$jacoco_exec_file" ]; then
+            echo "Error: JaCoCo execution data file not generated"
+            exit 1
+          fi
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: coverage-report-${{ strategy.job-index }}
+          path: target/site/jacoco
+          retention-days: 14
+
+      - name: Report Coverage
+        run: |
+          echo "Coverage Summary for ${{ matrix.jvm_flags }}"
+          coverage_file="target/site/jacoco/index.html"
+          if [ -f "$coverage_file" ]; then
+            echo "Coverage report generated successfully"
+            echo "Full report available in artifacts"
+          else
+            echo "Coverage report generation failed"
+            exit 1
+          fi
+
+  coverage-summary:
+    needs: test-with-flags
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all coverage reports
+        uses: actions/download-artifact@v4.3.3
+        with:
+          path: coverage-reports
+
+      - name: Generate Summary
+        run: |
+          echo "# Coverage Summary" > coverage-summary.md
+          echo "| JVM Flag | Coverage Report |" >> coverage-summary.md
+          echo "|----------|-----------------|" >> coverage-summary.md
+          
+          for report in coverage-reports/coverage-report-*/; do
+            if [ -d "$report" ]; then
+              flag_name=$(basename "$(dirname "$report")")
+              echo "| $flag_name | [View Report]($report/index.html) |" >> coverage-summary.md
+            fi
+          done
+
+      - name: Upload Summary
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: coverage-summary
+          path: coverage-summary.md
+          retention-days: 14
